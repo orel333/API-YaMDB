@@ -48,12 +48,10 @@ class Title(models.Model):
     genre = models.ForeignKey(
         Genre, on_delete=models.SET_NULL,
         related_name="titles", null=True,
-        required=True,
     )
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL,
         related_name="titles", null=True,
-        required=True,
     )
 
     def __str__(self):
