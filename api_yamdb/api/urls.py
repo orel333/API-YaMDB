@@ -1,8 +1,8 @@
 from django.urls import include, path
 from rest_framework import routers
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .views import CategoryViewSet, GenreViewSet, TitleViewSet,
-                   MyUserViewSet, ProfileViewSet, UserSignupViewSet
+from reviews.views import CategoryViewSet, GenreViewSet, TitleViewSet
+from users.views import MyUserViewSet, ProfileViewSet, UserSignupViewSet
 
 router_v1 = routers.DefaultRouter()
 router_v1.register(r'categories', CategoryViewSet, basename='categories')
@@ -15,3 +15,4 @@ urlpatterns = [
     path('v1/auth/token/', TokenObtainPairView.as_view()),
     path('v1/', include(router_v1.urls)),
     path('v1/users/me/', ProfileViewSet.as_view())
+]

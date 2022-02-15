@@ -1,7 +1,6 @@
-from email.headerregistry import Group
-from api_yamdb.users.models import CustomUser
 from rest_framework import serializers
 from reviews.models import Category, Genre, Title
+from users.models import CustomUser
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
@@ -41,4 +40,4 @@ class TitleSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Title
-        fields = ('__all__')
+        fields = ('id', 'name', 'year', 'description', 'genre', 'category', )
