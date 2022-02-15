@@ -10,7 +10,9 @@ class Category(models.Model):
         ('FILM', 'Фильмы'),
         ('BOOK', 'Книги'),
     )
-    name = models.CharField(max_length=200, choices=CATEGORY_CHOICES, null=False)
+    name = models.CharField(max_length=200,
+                            choices=CATEGORY_CHOICES,
+                            null=False)
     slug = models.SlugField(
         unique=True,
         verbose_name="url-адрес категории",
@@ -45,10 +47,12 @@ class Title(models.Model):
     genre = models.ForeignKey(
         Genre, on_delete=models.SET_NULL,
         related_name="titles", null=True,
+        required=True,
     )
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL,
         related_name="titles", null=True,
+        required=True,
     )
 
     def __str__(self):
