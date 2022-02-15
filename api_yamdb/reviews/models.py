@@ -1,10 +1,11 @@
+import datetime
+
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
-import datetime
 
 class Category(models.Model):
-    #Выбор начальных категорий
+    # Выбор начальных категорий
     CATEGORY_CHOICES = (
         ('MUSIC', 'Музыка'),
         ('FILM', 'Фильмы'),
