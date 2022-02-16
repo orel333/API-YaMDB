@@ -1,11 +1,10 @@
 import datetime
+
 from django.contrib.auth import get_user_model
-
-User = get_user_model()
-
-
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
+
+User = get_user_model()
 
 
 class Category(models.Model):
@@ -48,22 +47,23 @@ class Title(models.Model):
         ],
         verbose_name="Год выпуска",
     )
-    description = models.TextField
-    genre = models.ForeignKey(
-        Genre, on_delete=models.SET_NULL,
-        related_name="titles", null=True,
+    description = models.TextField(max_length=500, blank=True)
+    genre = models.ManyToManyField(
+        Genre,
+        related_name="titles",
+        blank=True,
     )
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL,
         related_name="titles", null=True,
     )
+    rating = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         return self.name
 
 
 class Review(models.Model):
-      
     title = models.ForeignKey(
         Title, on_delete=models.CASCADE, verbose_name='Произведения')
     text = models.TextField(max_length=200, verbose_name='Текст отзыва')
@@ -92,7 +92,7 @@ class Review(models.Model):
                 name='unique_review'
             )]
         ordering = ('pub_date',)
-    
+
     def __str__(self):
         return self.text
 
@@ -117,6 +117,6 @@ class Comment(models.Model):
 
     # class Meta:
     #     ordering = ['-created']
-    
+
     def __str__(self):
         return self.text
