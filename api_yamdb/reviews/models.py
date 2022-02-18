@@ -15,8 +15,8 @@ class Category(models.Model):
         ('BOOK', 'Книги'),
     )
     name = models.CharField(max_length=200,
-                            choices=CATEGORY_CHOICES,
-                            null=False)
+                            null=False,
+                            verbose_name='название категории')
     slug = models.SlugField(
         unique=True,
         verbose_name="url-адрес категории",
@@ -27,7 +27,9 @@ class Category(models.Model):
 
 
 class Genre(models.Model):
-    name = models.CharField(max_length=50, null=False)
+    name = models.CharField(max_length=50,
+                            null=False,
+                            verbose_name='название жанра')
     slug = models.SlugField(
         unique=True,
         verbose_name="url-адрес жанра",
@@ -78,7 +80,8 @@ class Review(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='reviews',
-        verbose_name='Автор'
+        verbose_name='Автор',
+        null=True
     )
     pub_date = models.DateTimeField(
         'Дата публикации', auto_now_add=True

@@ -1,27 +1,68 @@
+import logging
+import sys
+
+import jwt
 from django.shortcuts import get_object_or_404
 from rest_framework import filters, permissions, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.views import TokenViewBase
 from reviews.models import Category, Comment, Genre, Review, Title
 from users.models import CustomUser
 
-from .permissions import IsAdminOrReadOnly, IsOwnerOrReadOnly
+from .permissions import (IsAdminOrReadOnly, IsAdminUserCustom,
+                          IsOwnerOrReadOnly)
 from .serializers import (CategorySerializer, CommentSerializer,
                           CustomUserSerializer, GenreSerializer,
-                          ReviewSerializer, TitleSerializer)
+                          ReviewSerializer, SignUpSerializer, TitleSerializer)
 
 
-class MyUserViewSet(viewsets.ModelViewSet):
-    """Вьюсет для получения API Users."""
+class UserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
+    lookup_field = 'username'
+    trailing_slash = '/'
+
+    def get_permissions(self):
+        if 'getme' in self.action_map.values():
+            return (permissions.IsAuthenticated,)
+        if self.suffix == 'users-list' or 'user-detail':
+            return (IsAdminUserCustom(),)
+
+    @action(detail=True, url_path='me', methods=['get', 'patch'])
+    def getme(self, request):
+        user = get_object_or_404(username=request.user.username)
+        serializer = self.get_serializer(user)
+        return Response(serializer.data)
+
+
+class APISignupView(APIView):
+
+    def post(self, request):
+        #email = ''
+        serializer = SignUpSerializer(data=request.data)
+        if serializer.is_valid():
+        # принимает e-mail, username,
+        # формирует код подтверждения,
+        # отправляет код подтверждения на e-mail
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class TokenView(TokenViewBase):
+        # принимает username, код подтверждения
+        # проверяет, что информация верная, 
+        # создаёт пользователя, выдает токен
+    def post(self, request, *args, **kwargs):
+        pass
+    pass
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [IsAdminOrReadOnly, ]
     pagination_class = PageNumberPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', ]
@@ -36,7 +77,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = [IsAdminOrReadOnly, ]
     pagination_class = PageNumberPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', ]
@@ -51,8 +91,6 @@ class GenreViewSet(viewsets.ModelViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     serializer_class = TitleSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly,
-                          IsAdminOrReadOnly]
     pagination_class = PageNumberPagination
 
 
@@ -62,13 +100,13 @@ class ReviewViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
-        return title.reviews.all()
+        return Review.objects.filter(title=title)
 
     def perform_create(self, serializer):
         title = get_object_or_404(
             Title,
             id=self.kwargs.get('title_id'))
-        serializer.save(author=self.request.user, title=title)
+        serializer.save(title=title)
 
 
 class CommentViewSet(viewsets.ModelViewSet):

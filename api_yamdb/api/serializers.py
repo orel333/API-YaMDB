@@ -1,10 +1,11 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
 from reviews.models import Category, Comment, Genre, Review, Title
-from users.models import CustomUser
+from users.models import CustomUser, ROLE_CHOICES
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
+    role = serializers.ChoiceField(choices=ROLE_CHOICES)
 
     class Meta:
         model = CustomUser
@@ -17,11 +18,29 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'role')
         # здесь должны быть разные readonly_fields
         # в зависимости от уровня доступа
-        read_only_fields = ('first_name', 'last_name', 'bio', 'role')
+        #read_only_fields = ('first_name', 'last_name', 'bio', 'role')
 
     def validate_username(self, value):
         if value == 'me':
             raise serializers.ValidationError('Недопустимое имя пользователя.')
+
+    def create(self, validated_data):
+        if 'email' in self.initial_data:
+            pass
+            #отправляем письмо с кодом подтверждения на адрес email
+        if 'confirmation_code' in self.initial_data:
+            pass
+            #проверяем правильность кода,
+
+
+class SignUpSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CustomUser
+        fields = (
+            'username',
+            'email'
+        )
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -37,25 +56,18 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class TitleSerializer(serializers.ModelSerializer):
-    genre = GenreSerializer(
-        many=True,
-        read_only=True
-    )
-    category = CategorySerializer(
-        read_only=True,
-    )
-    rating = serializers.IntegerField(read_only=True)
+    category = CategorySerializer
 
     class Meta:
         model = Title
-        fields = ('id', 'name', 'year', 'rating',
-                  'description', 'genre', 'category')
+        fields = ('__all__')
 
 
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         slug_field='username',
-        read_only=True
+        read_only=True,
+        required=False,
     )
 
     class Meta:
