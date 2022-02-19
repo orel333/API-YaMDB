@@ -205,6 +205,7 @@ class Test04TitleAPI:
         assert len(test_data) == len(titles) - 1, (
             'Проверьте, что при DELETE запросе `/api/v1/titles/{title_id}/` удаляете объект'
         )
+        print(titles)
 
     def check_permissions(self, user, user_name, titles, categories, genres):
         client_user = auth_client(user)
