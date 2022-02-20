@@ -19,6 +19,7 @@ class CustomUser(AbstractUser):
     )
     email = models.EmailField('E-MAIL', unique=True, blank=False, null=False)
     username = models.CharField(max_length=150, unique=True)
+    is_superuser = models.BooleanField(default=False)
 
     class Meta:
         verbose_name = 'пользователь'
