@@ -3,6 +3,7 @@ import sys
 
 import jwt
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
@@ -13,11 +14,13 @@ from rest_framework_simplejwt.views import TokenViewBase
 from reviews.models import Category, Comment, Genre, Review, Title
 from users.models import CustomUser
 
+from .filters import TitlesFilter
 from .permissions import (IsAdminOrReadOnly, IsAdminUserCustom,
                           IsOwnerOrReadOnly)
 from .serializers import (CategorySerializer, CommentSerializer,
                           CustomUserSerializer, GenreSerializer,
-                          ReviewSerializer, SignUpSerializer, TitleCreateSerializer, TitleSerializer)
+                          ReviewSerializer, SignUpSerializer,
+                          TitleCreateSerializer, TitleSerializer)
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -93,6 +96,8 @@ class GenreViewSet(viewsets.ModelViewSet):
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
     pagination_class = PageNumberPagination
+    filter_backends = [DjangoFilterBackend,]
+    filterset_class = TitlesFilter
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
