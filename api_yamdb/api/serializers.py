@@ -39,18 +39,6 @@ class CustomUserSerializer(serializers.ModelSerializer):
             'last_name',
             'bio',
             'role')
-        # здесь должны быть разные readonly_fields
-        # в зависимости от уровня доступа
-        #read_only_fields = ('first_name', 'last_name', 'bio', 'role')
-
-
-    def create(self, validated_data):
-        if 'email' in self.initial_data:
-            pass
-            #отправляем письмо с кодом подтверждения на адрес email
-        if 'confirmation_code' in self.initial_data:
-            pass
-            #проверяем правильность кода,
 
 
 class SignUpSerializer(serializers.ModelSerializer):
@@ -75,7 +63,6 @@ class SignUpSerializer(serializers.ModelSerializer):
         # вместо этой конструкции попробовать использовать
         # просто or None
         logger.debug(f'Validate username: value: {value}')
-        #if value == 'me':
         match = re.fullmatch(r'^[mM][eE]$', value)
         if match:
             logger.debug(
@@ -99,10 +86,9 @@ class SignUpSerializer(serializers.ModelSerializer):
         logger.debug(f'Валидация email: {user}')
         return value
 
-class MyTokenObtainSerializer(serializers.Serializer):
+class MyTokenObtainSerializer(
+    serializers.Serializer,):
     token = serializers.CharField(read_only=True)
-    #username = serializers.CharField(default=None)
-    #confirmation_code = serializers.CharField(default=None)
 
     def validate(self, data):
         logger.debug(self.initial_data)
@@ -125,11 +111,9 @@ class MyTokenObtainSerializer(serializers.Serializer):
             )
         email_from_code = payload.get('email')
         username_from_code = payload.get('username')
-        timestamp_from_code = payload.get('timestamp')
 
         preuser = PreUser.objects.get(username=username_from_code)
         email_from_preuser = preuser.email
-        now = time.time()
         if username_from_code != username_from_query:
             raise serializers.ValidationError(
                 'Похоже на подложный код подтверждения. '
@@ -140,10 +124,6 @@ class MyTokenObtainSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 'Похоже на подложный код подтверждения.'
             )
-        if int(now) < int(timestamp_from_code):
-            raise serializers.ValidationError(
-                'Данный код сфабрикован.'
-            )
         
         custom_user_data = {
             'username': username_from_query,
@@ -152,6 +132,7 @@ class MyTokenObtainSerializer(serializers.Serializer):
 
         newborn = CustomUser.objects.create_user(**custom_user_data)
         token = AccessToken.for_user(newborn)
+        token['role'] = newborn.role
         logger.debug(dir(token))
         logger.debug(f'Токен из serializers: {token}')
 

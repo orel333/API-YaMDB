@@ -12,9 +12,9 @@ from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
-#from rest_framework.simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+from .methods import get_user_role
 from .serializers import (
     CustomUserSerializer,
     SignUpSerializer,
@@ -22,6 +22,7 @@ from .serializers import (
 )
 from api_yamdb.settings import SECRET_KEY
 from users.models import CustomUser
+
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
@@ -35,8 +36,6 @@ handler.setFormatter(formatter)
 logger.disabled = False
 logger.debug('Логирование из views запущено')
 
-# придумать как в зависимости от эндпойнта определить список допустимых HTTP-методов
-# по идее через action (methods, url_path), как user поместить в url_path
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
@@ -54,12 +53,29 @@ class UserViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, url_path='me', methods=['get', 'patch'])
     def getme(self, request):
-        user = get_object_or_404(
-            CustomUser,
-            username=request.user.username
-        )
-        serializer = self.get_serializer(user)
-        return Response(serializer.data)
+        request_user = request.user
+        custom_user = CustomUser.objects.get(username=request_user.username)
+        logger.debug(request.auth)
+
+        if request.method == 'GET':
+            serializer = self.get_serializer(custom_user)
+            logger.debug('Зафиксирован метод GET')
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        if request.method == 'PATCH':
+            request_user_role = get_user_role(request.auth)
+            logger.debug(f'User role: {request_user_role}')
+            rd = request.data
+            rd['role'] = request_user_role
+            if 'username' not in rd:
+                rd['username'] = request_user.username
+            if 'email' not in rd:
+                rd['email'] = request_user.email
+            serializer = self.get_serializer(custom_user, data=rd)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_200_OK)
+            
 
 
 class APISignupView(APIView):
@@ -73,11 +89,9 @@ class APISignupView(APIView):
             email = request.data.get('email')
             username = request.data.get('username')
             logger.debug(f'{username}: {email}')
-            timestamp = int(time.time())
             dict = {
                 'email': email,
                 'username': username,
-                'timestamp': timestamp
             }
             key = SECRET_KEY
             encoded = jwt.encode(dict, key, 'HS256')
@@ -89,9 +103,7 @@ class APISignupView(APIView):
                 'на адрес: http://127.0.0.1/api/v1/auth/token/. '
                 f'В теле запроса передайте имя пользователя {username} '
                 f'по ключу "username" и код \n\n{encoded}\n\n'
-                f'по ключу "confirmation_code".\n\n'
-                f'\tОбращаем также Ваше внимание, что код '
-                'подтверждения действителен в течение суток.'   
+                f'по ключу "confirmation_code".'
             )
             mail_from = 'orel333app@gmail.com'
             mail_to = [email]
@@ -103,30 +115,12 @@ class APISignupView(APIView):
                 fail_silently=False
             )
             logger.debug(encoded)
-            logger.debug(timestamp)
-            logger.debug(type(timestamp))
             
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        #email = ''
-        #username = ''
-        # принимает e-mail, username,
-        # формирует код подтверждения (JWT с email и username),
-        # отправляет код подтверждения на e-mail
-        # создает объект preuser
 
 
 class TokenView(TokenObtainPairView):
-#class TokenView(APIView):
-        # принимает username, код подтверждения
-        # проверяет, что информация верная (user 
-        # из токена и юзер в запросе совпадают,
-        # email из токена и email из преюзера совпадают,
-        # timestamp из токена не пройден), 
-        # создаёт пользователя, выдает токен
-        # удаляет объект preuser
-    # def post(self, request, *args, **kwargs):
-        #pass
     def post(self, request):
         rd = request.data
         logger.debug(f'View: request.data: {rd}')
