@@ -1,4 +1,4 @@
-from django.contrib.auth.models import AbstractUser
+from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 
 ROLE_CHOICES = (
@@ -6,6 +6,17 @@ ROLE_CHOICES = (
     ('moderator', 'Модератор'),
     ('admin', 'Администратор'),
 )
+
+class CustomUserManager(UserManager):
+    def create_superuser(self, username, email, password):
+        user = super().create_superuser(username, email, password)
+        user.role = 'admin'
+        user.save(using=self._db)
+        #выдаем суперпользователю confirmation_code
+        
+        #выдаем суперпользователю token
+
+        return user
 
 
 class CustomUser(AbstractUser):
@@ -20,6 +31,8 @@ class CustomUser(AbstractUser):
     email = models.EmailField('E-MAIL', unique=True, blank=False, null=False)
     username = models.CharField(max_length=150, unique=True)
     is_superuser = models.BooleanField(default=False)
+
+    objects = CustomUserManager()
 
     class Meta:
         verbose_name = 'пользователь'

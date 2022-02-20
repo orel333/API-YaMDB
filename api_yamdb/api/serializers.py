@@ -111,32 +111,43 @@ class MyTokenObtainSerializer(
             )
         email_from_code = payload.get('email')
         username_from_code = payload.get('username')
-
-        preuser = PreUser.objects.get(username=username_from_code)
-        email_from_preuser = preuser.email
+        preuser_object = False
+        if CustomUser.objects.filter(username=username_from_query).exists():
+            user_object = CustomUser.objects.get(username=username_from_query)
+        elif PreUser.objects.filter(username=username_from_query).exists():
+            user_object = PreUser.objects.get(username=username_from_query)
+            preuser_object = True
+        else:
+            raise serializers.ValidationError(
+                'Отправлен некорректный username.'
+            )
+        #preuser = PreUser.objects.get(username=username_from_code)
+        email_from_model = user_object.email
         if username_from_code != username_from_query:
             raise serializers.ValidationError(
                 'Похоже на подложный код подтверждения. '
                 'Либо Вы сейчас указали не то имя пользователя, '
                 'которое указали при получении кода подтверждения.'
             )
-        if  email_from_code != email_from_preuser:
+        if  email_from_code != email_from_model:
             raise serializers.ValidationError(
                 'Похоже на подложный код подтверждения.'
             )
-        
-        custom_user_data = {
-            'username': username_from_query,
-            'email': email_from_preuser
-        }
 
-        newborn = CustomUser.objects.create_user(**custom_user_data)
-        token = AccessToken.for_user(newborn)
-        token['role'] = newborn.role
+        if preuser_object:
+            custom_user_data = {
+                'username': username_from_query,
+                'email': email_from_model
+            }
+            newborn = CustomUser.objects.create_user(**custom_user_data)
+            user_object.delete()
+            user_object = newborn
+        
+        token = AccessToken.for_user(user_object)
+        token['role'] = user_object.role
         logger.debug(dir(token))
         logger.debug(f'Токен из serializers: {token}')
 
         data = {'token': token}
-        preuser.delete()
 
         return data
