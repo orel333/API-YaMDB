@@ -4,7 +4,9 @@ from rest_framework import routers
 from .views import (APISignupView, CategoryViewSet, CommentViewSet,
                     GenreViewSet, ReviewViewSet, TitleViewSet, TokenView,
                     UserViewSet)
+from .views import ReviewViewSet, CommentViewSet
 from django.urls import include, path
+from rest_framework import routers
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 router_v1 = routers.DefaultRouter()

@@ -1,33 +1,45 @@
-from rest_framework import viewsets
-from reviews.models import Category, Genre, Title, Comment, Review, Title
-from users.models import CustomUser
-from .serializers import (CategorySerializer, CustomUserSerializer,
-                          GenreSerializer, TitleSerializer)
-from .serializers import ReviewSerializer, CommentSerializer
-from django.shortcuts import get_object_or_404
-from .permissions import IsAdminModeratorUserPermission
-
 
 import logging
 import sys
+import numpy
 
 import jwt
+from api_yamdb.settings import SECRET_KEY
+from django.core.mail import send_mail
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenViewBase
-from reviews.models import Category, Comment, Genre, Review, Title
+from rest_framework_simplejwt.views import TokenObtainPairView
+from reviews.models import Category, Genre, Review, Title
 from users.models import CustomUser
 
-from .permissions import (IsAdminOrReadOnly, IsAdminUserCustom,
-                          IsOwnerOrReadOnly)
+from .filters import TitlesFilter
+from .methods import get_user_role
+from .permissions import (IsAdminModeratorUserPermission,
+                          IsAdminUserCustom)
 from .serializers import (CategorySerializer, CommentSerializer,
                           CustomUserSerializer, GenreSerializer,
-                          ReviewSerializer, SignUpSerializer, TitleSerializer)
+                          MyTokenObtainSerializer, ReviewSerializer,
+                          SignUpSerializer, TitleCreateSerializer,
+                          TitleSerializer)
+
+formatter = logging.Formatter(
+    '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
+)
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+handler = logging.StreamHandler(sys.stdout)
+logger.addHandler(handler)
+handler.setFormatter(formatter)
+logger.disabled = False
+logger.debug('Логирование из views запущено')
+
 
 class UserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
@@ -37,36 +49,92 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def get_permissions(self):
         if 'getme' in self.action_map.values():
-            return (permissions.IsAuthenticated,)
+            logger.debug('Запущен эндпойнт me')
+            return (permissions.IsAuthenticated(),)
         if self.suffix == 'users-list' or 'user-detail':
+            logger.debug('Запущен эндпойнт users-list или user-detail')
             return (IsAdminUserCustom(),)
 
     @action(detail=True, url_path='me', methods=['get', 'patch'])
     def getme(self, request):
-        user = get_object_or_404(username=request.user.username)
-        serializer = self.get_serializer(user)
-        return Response(serializer.data)
+        request_user = request.user
+        custom_user = CustomUser.objects.get(username=request_user.username)
+        logger.debug(request.auth)
+
+        if request.method == 'GET':
+            serializer = self.get_serializer(custom_user)
+            logger.debug('Зафиксирован метод GET')
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        if request.method == 'PATCH':
+            request_user_role = get_user_role(request.auth)
+            logger.debug(f'User role: {request_user_role}')
+            rd = request.data
+            rd['role'] = request_user_role
+            if 'username' not in rd:
+                rd['username'] = request_user.username
+            if 'email' not in rd:
+                rd['email'] = request_user.email
+            serializer = self.get_serializer(custom_user, data=rd)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_200_OK)
+            
 
 
 class APISignupView(APIView):
 
     def post(self, request):
-        #email = ''
+        logger.debug(request.data)
         serializer = SignUpSerializer(data=request.data)
         if serializer.is_valid():
-        # принимает e-mail, username,
-        # формирует код подтверждения,
-        # отправляет код подтверждения на e-mail
+            logger.debug('Валидация APISignupView пройдена')
+            serializer.save()
+            email = request.data.get('email')
+            username = request.data.get('username')
+            logger.debug(f'{username}: {email}')
+            dict = {
+                'email': email,
+                'username': username,
+            }
+            key = SECRET_KEY
+            encoded = jwt.encode(dict, key, 'HS256')
+            mail_theme = 'Подтверждение регистрации пользователя'
+            mail_text = (
+                f'Здравствуйте!\n\n\tВы (или кто-то другой) '
+                'запросили регистрацию на сайте YaMDB. '
+                'Для подтверждения регистрации отправьте POST запрос '
+                'на адрес: http://127.0.0.1/api/v1/auth/token/. '
+                f'В теле запроса передайте имя пользователя {username} '
+                f'по ключу "username" и код \n\n{encoded}\n\n'
+                f'по ключу "confirmation_code".'
+            )
+            mail_from = 'orel333app@gmail.com'
+            mail_to = [email]
+            send_mail(
+                mail_theme,
+                mail_text,
+                mail_from, 
+                mail_to,
+                fail_silently=False
+            )
+            logger.debug(encoded)
+            
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class TokenView(TokenViewBase):
-        # принимает username, код подтверждения
-        # проверяет, что информация верная, 
-        # создаёт пользователя, выдает токен
-    def post(self, request, *args, **kwargs):
-        pass
-    pass
+class TokenView(TokenObtainPairView):
+    def post(self, request):
+        rd = request.data
+        logger.debug(f'View: request.data: {rd}')
+
+        serializer = MyTokenObtainSerializer(data=rd)
+        if serializer.is_valid():
+            logger.debug('Serializer is valid')
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -74,6 +142,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', ]
+    lookup_field = 'slug'
 
     def retrieve(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -88,6 +157,7 @@ class GenreViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', ]
+    lookup_field = 'slug'
 
     def retrieve(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
@@ -97,44 +167,50 @@ class GenreViewSet(viewsets.ModelViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.all()
-    serializer_class = TitleSerializer
+    # queryset = Title.objects.all()
+    queryset = Title.objects.annotate(
+        rating=Avg('reviews__score')
+    ).all()   
     pagination_class = PageNumberPagination
+    filter_backends = [DjangoFilterBackend,]
+    filterset_class = TitlesFilter
 
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return TitleSerializer
+        return TitleCreateSerializer
 
 class ReviewViewSet(viewsets.ModelViewSet):
     """Пользователи оставляют к произведениям текстовые отзывы."""
     serializer_class = ReviewSerializer
-    permission_class = (IsAdminModeratorUserPermission,)
-    
+    http_method_names = ['get', 'post', 'patch', 'delete']
+    permission_classes = [IsAdminModeratorUserPermission, permissions.IsAuthenticatedOrReadOnly]
+      
     def get_queryset(self):
-        title = get_object_or_404(
-        Title,
-        id=self.kwargs.get('title_id'))
-        return title.reviews.all()
+        if getattr(self, 'swagger_fake_view', False):
+            return Title.objects.none()
+        review = get_object_or_404(Title, id=self.kwargs['title_id'])
+        return review.reviews.all()
 
     def perform_create(self, serializer):
-        title = get_object_or_404(
-            Title,
-            id=self.kwargs.get('title_id'))
+        title = get_object_or_404(Title, id=self.kwargs['title_id'])
         serializer.save(author=self.request.user, title=title)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
     """Пользователи оставляют коментарии к отзывам."""
     serializer_class = CommentSerializer
-    permission_class = (IsAdminModeratorUserPermission,)
-
-        
+    permission_classes = [IsAdminModeratorUserPermission, permissions.IsAuthenticatedOrReadOnly]
+    http_method_names = ['get', 'post', 'patch', 'delete']
+    
     def get_queryset(self):
         review = get_object_or_404(
-            Review,
-            id=self.kwargs.get('review_id'))
+            Review, id=self.kwargs['review_id'],
+            title__id=self.kwargs['title_id']
+        )
         return review.comments.all()
-
+    
     def perform_create(self, serializer):
-        review = get_object_or_404(
-            Review,
-            id=self.kwargs.get('review_id'))
+        review = get_object_or_404(Review, title_id=self.kwargs['title_id'],
+                                   id=self.kwargs['review_id'])
         serializer.save(author=self.request.user, review=review)
-

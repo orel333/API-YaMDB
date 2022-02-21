@@ -1,9 +1,8 @@
-from django.contrib.auth import get_user_model
-import uuid
 import datetime
 
-User = get_user_model()
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
@@ -17,21 +16,24 @@ class Category(models.Model):
         ('BOOK', 'Книги'),
     )
     name = models.CharField(max_length=200,
-                            choices=CATEGORY_CHOICES,
-                            null=True)
+                            null=False,
+                            verbose_name='название категории')
     slug = models.SlugField(
         unique=True,
-        verbose_name="url-адрес категории", null=True
+        verbose_name="url-адрес категории",
     )
 
     def __str__(self):
         return self.name
 
+
 class Genre(models.Model):
-    name = models.CharField(max_length=50, null=True)
+    name = models.CharField(max_length=50,
+                            null=False,
+                            verbose_name='название жанра')
     slug = models.SlugField(
         unique=True,
-        verbose_name="url-адрес жанра", default=uuid.uuid1, null=True
+        verbose_name="url-адрес жанра",
     )
 
     def __str__(self):
@@ -39,7 +41,7 @@ class Genre(models.Model):
 
 
 class Title(models.Model):
-    name = models.CharField(max_length=200, null=True)
+    name = models.CharField(max_length=200)
     year = models.PositiveIntegerField(
         default=0,
         validators=[
@@ -58,12 +60,11 @@ class Title(models.Model):
         Category, on_delete=models.SET_NULL,
         related_name="titles", null=True,
     )
-    rating = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         return self.name
-
-
+    
+    
 class Review(models.Model):
       
     title = models.ForeignKey(
@@ -86,6 +87,7 @@ class Review(models.Model):
         'Дата публикации', auto_now_add=True
     )
 
+
     class Meta:
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
@@ -95,13 +97,16 @@ class Review(models.Model):
                 fields=('title', 'author', ),
                 name='unique_review'
             )]
-        ordering = ('pub_date',)
     
     def __str__(self):
         return self.text
 
 
 class Comment(models.Model):
+    title = models.ForeignKey(
+        Title, on_delete=models.CASCADE, null=True,
+        related_name="comments", verbose_name='Произведение'
+    )
     author = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -124,3 +129,5 @@ class Comment(models.Model):
 
     def __str__(self):
         return self.text
+
+
