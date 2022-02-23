@@ -12,6 +12,7 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import AccessToken
 
 from api_yamdb.settings import SECRET_KEY
+from .methods import decode, encode, give_jwt_for
 from users.models import CustomUser, PreUser, ROLE_CHOICES
 
 formatter = logging.Formatter(
@@ -100,11 +101,12 @@ class MyTokenObtainSerializer(
             f'Validation: {username_from_query}:\n {confirmation_code}'
         )
         try:
-            payload = jwt.decode(
-                jwt=confirmation_code,
-                key=SECRET_KEY,
-                algorithms=['HS256']
-            )
+            payload = decode(confirmation_code)
+            #payload = jwt.decode(
+                #jwt=confirmation_code,
+                #key=SECRET_KEY,
+                #algorithms=['HS256']
+            #)
         except DecodeError:
             raise serializers.ValidationError(
                 'Данный код сфабрикован.'
@@ -137,14 +139,17 @@ class MyTokenObtainSerializer(
         if preuser_object:
             custom_user_data = {
                 'username': username_from_query,
-                'email': email_from_model
+                'email': email_from_model,
+                'role': 'user',
+                'password': 'password'
             }
             newborn = CustomUser.objects.create_user(**custom_user_data)
             user_object.delete()
             user_object = newborn
         
-        token = AccessToken.for_user(user_object)
-        token['role'] = user_object.role
+        #token = AccessToken.for_user(user_object)
+        #token['role'] = user_object.role
+        token = give_jwt_for(user_object)
         logger.debug(dir(token))
         logger.debug(f'Токен из serializers: {token}')
 

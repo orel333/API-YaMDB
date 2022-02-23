@@ -65,7 +65,9 @@ class UserViewSet(viewsets.ModelViewSet):
             request_user_role = get_user_role(request.auth)
             logger.debug(f'User role: {request_user_role}')
             rd = request.data
-            rd['role'] = request_user_role
+            if 'role' in rd:
+                del rd['role']
+            #rd['role'] = request_user_role
             if 'username' not in rd:
                 rd['username'] = request_user.username
             if 'email' not in rd:
