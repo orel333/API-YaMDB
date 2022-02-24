@@ -59,9 +59,11 @@ class CustomUserManager(BaseUserManager):
         # выдаем суперпользователю token
         role = 'admin'
 
-        return self.create_user(username, email, password, role, **other_fields)
+        return self.create_user(username, email, role, password, **other_fields)
 
     def create_user(self, username, email, role='user', password=None, **other_fields):
+        logger.debug(f'Got role: {role}')
+        logger.debug(f'Got password: {password}')
         logger.debug('Create user func was initiated')
         if not email:
             raise ValueError('Необходимо указать email')

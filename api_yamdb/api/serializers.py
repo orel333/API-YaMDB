@@ -29,7 +29,7 @@ logger.debug('Логирование из serializers запущено')
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
-    role = serializers.ChoiceField(choices=ROLE_CHOICES)
+    role = serializers.ChoiceField(choices=ROLE_CHOICES, default='user')
 
     class Meta:
         model = CustomUser

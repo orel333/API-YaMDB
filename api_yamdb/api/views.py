@@ -15,6 +15,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .methods import get_user_role
+from .permissions import IsAdminUserCustom
 from .serializers import (
     CustomUserSerializer,
     SignUpSerializer,
@@ -77,6 +78,24 @@ class UserViewSet(viewsets.ModelViewSet):
                 serializer.save()
                 return Response(serializer.data, status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_200_OK)
+
+    def perform_create(self, serializer):
+        rd = self.request.data
+        role = rd.get('role')
+        if role == 'admin':
+            is_staff = True
+        else:
+            is_staff = False
+        serializer.save(is_staff=is_staff)
+
+    def perform_update(self, serializer):
+        rd = self.request.data
+        role = rd.get('role')
+        if role == 'admin':
+            is_staff = True
+        else:
+            is_staff = False
+        serializer.save(is_staff=is_staff)
             
 
 
