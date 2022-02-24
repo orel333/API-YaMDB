@@ -140,8 +140,6 @@ class MyTokenObtainSerializer(
             custom_user_data = {
                 'username': username_from_query,
                 'email': email_from_model,
-                'role': 'user',
-                'password': 'password'
             }
             newborn = CustomUser.objects.create_user(**custom_user_data)
             user_object.delete()

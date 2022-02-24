@@ -57,10 +57,11 @@ class CustomUserManager(BaseUserManager):
               # f'- используйте его при необходимости обновления токена.')
 # 
         # выдаем суперпользователю token
+        role = 'admin'
 
-        return self.create_user(username, email, password, role='admin', **other_fields)
+        return self.create_user(username, email, password, role, **other_fields)
 
-    def create_user(self, username, email, password, role, **other_fields):
+    def create_user(self, username, email, role='user', password=None, **other_fields):
         logger.debug('Create user func was initiated')
         if not email:
             raise ValueError('Необходимо указать email')
@@ -76,8 +77,7 @@ class CustomUserManager(BaseUserManager):
         )
         if role == 'admin':
             user.is_staff = True
-
-        user.set_password(password)
+            user.set_password(password)
         user.save()
         dict = {
             'email': email,
@@ -133,3 +133,4 @@ class PreUser(models.Model):
 
     def __str__(self):
         return f'{self.username}: {self.email}'
+
