@@ -14,7 +14,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 
-from .methods import get_user_role
+from .methods import give_jwt_for, get_user_role, encode
 from .permissions import IsAdminUserCustom
 from .serializers import (
     CustomUserSerializer,
@@ -22,7 +22,7 @@ from .serializers import (
     MyTokenObtainSerializer,
 )
 from api_yamdb.settings import SECRET_KEY
-from users.models import CustomUser
+from reviews.models import CustomUser
 
 
 formatter = logging.Formatter(
@@ -76,6 +76,17 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(custom_user, data=rd)
             if serializer.is_valid():
                 serializer.save()
+                user=serializer.instance
+                if 'email' in rd or 'username' in rd:
+                    email = user.email
+                    username = user.username
+
+                    dict = {
+                        'email': email,
+                        'username': username
+                    }
+                    confirmation_code = encode(dict)
+                    print(f'Объект {username}\n Его новый confirmation_code:{confirmation_code}.')
                 return Response(serializer.data, status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_200_OK)
 
@@ -96,10 +107,25 @@ class UserViewSet(viewsets.ModelViewSet):
         else:
             is_staff = False
         serializer.save(is_staff=is_staff)
+        user = serializer.instance
+        if 'email' in rd or 'username' in rd:
+            email = user.email
+            username = user.username
+
+            dict = {
+                'email': email,
+                'username': username
+            }
+            confirmation_code = encode(dict)
+            print(f'Объект {username}\n Его новый confirmation_code:{confirmation_code}.')
+
+
+
             
 
 
 class APISignupView(APIView):
+    permission_classes = (permissions.AllowAny,)
 
     def post(self, request):
         logger.debug(request.data)
@@ -142,6 +168,8 @@ class APISignupView(APIView):
 
 
 class TokenView(TokenObtainPairView):
+    permission_classes = (permissions.AllowAny,)
+
     def post(self, request):
         rd = request.data
         logger.debug(f'View: request.data: {rd}')

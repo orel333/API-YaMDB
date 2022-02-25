@@ -10,7 +10,7 @@ from django.contrib.auth.forms import (
 
 from api_yamdb.settings import EMPTY_VALUE
 from api.methods import encode, give_jwt_for
-from users.models import CustomUser, PreUser
+from .models import CustomUser, PreUser
 
 from api.serializers import logger
 

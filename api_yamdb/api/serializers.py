@@ -13,7 +13,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from api_yamdb.settings import SECRET_KEY
 from .methods import decode, encode, give_jwt_for
-from users.models import CustomUser, PreUser, ROLE_CHOICES
+from reviews.models import CustomUser, PreUser, ROLE_CHOICES
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
