@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import jwt
 import logging
 import sys
@@ -6,39 +5,39 @@ import time
 
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
-
-from rest_framework import permissions
-from rest_framework import status
-from rest_framework import viewsets
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.views import TokenViewBase
 
-from .methods import give_jwt_for, get_user_role, encode
-from .permissions import IsAdminUserCustom
-from .serializers import (
-    CustomUserSerializer,
-    SignUpSerializer,
-    MyTokenObtainSerializer,
-)
 from api_yamdb.settings import SECRET_KEY
-from reviews.models import CustomUser
+from reviews.models import Category, Comment, Genre, Review, Title, CustomUser
+from users.models import CustomUser
+from .filters import TitlesFilter
+from .methods import give_jwt_for, get_user_role, encode
+from .permissions import (IsAdminOrReadOnly, IsAdminUserCustom,
+                          IsOwnerOrReadOnly)
+from .serializers import (CategorySerializer, CommentSerializer,
+                          CustomUserSerializer, GenreSerializer,
+                          ReviewSerializer, SignUpSerializer,
+                          TitleCreateSerializer, TitleSerializer, MyTokenObtainSerializer)
 
-
-formatter = logging.Formatter(
-    '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
-)
 =======
-from rest_framework import permissions, viewsets
 from reviews.models import Category, Genre, Title
 from users.models import CustomUser
 
 from .permissions import IsAdminOrReadOnly
 from .serializers import (CategorySerializer, CustomUserSerializer,
                           GenreSerializer, TitleSerializer)
->>>>>>> master
 
+formatter = logging.Formatter(
+    '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
+)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler(sys.stdout)
@@ -51,7 +50,6 @@ logger.debug('Логирование из views запущено')
 class UserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
-<<<<<<< HEAD
     lookup_field = 'username'
     trailing_slash = '/'
 
@@ -131,10 +129,6 @@ class UserViewSet(viewsets.ModelViewSet):
             print(f'Объект {username}\n Его новый confirmation_code:{confirmation_code}.')
 
 
-
-            
-
-
 class APISignupView(APIView):
     permission_classes = (permissions.AllowAny,)
 
@@ -194,24 +188,69 @@ class TokenView(TokenObtainPairView):
 
 
 
-=======
     # pagination_class
 
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [IsAdminOrReadOnly, ]
+    pagination_class = PageNumberPagination
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', ]
+    lookup_field = 'slug'
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def update(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = [IsAdminOrReadOnly, ]
+    pagination_class = PageNumberPagination
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', ]
+    lookup_field = 'slug'
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def update(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all()
-    serializer_class = TitleSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly, ]
->>>>>>> master
+    pagination_class = PageNumberPagination
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, ]
+    filterset_class = TitlesFilter
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return TitleSerializer
+        return TitleCreateSerializer
+
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+
+    def get_queryset(self):
+        title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
+        return Review.objects.filter(title=title)
+
+    def perform_create(self, serializer):
+        title = get_object_or_404(
+            Title,
+            id=self.kwargs.get('title_id'))
+        serializer.save(title=title)
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer

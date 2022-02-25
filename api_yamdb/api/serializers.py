@@ -13,7 +13,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from api_yamdb.settings import SECRET_KEY
 from .methods import decode, encode, give_jwt_for
-from reviews.models import CustomUser, PreUser, ROLE_CHOICES, Category, Genre, Title
+from reviews.models import CustomUser, PreUser, ROLE_CHOICES, Category, Genre, Title, Comment, Review
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
@@ -147,22 +147,88 @@ class MyTokenObtainSerializer(
 
         return data
 
+    def create(self, validated_data):
+        if 'email' in self.initial_data:
+            pass
+            #отправляем письмо с кодом подтверждения на адрес email
+        if 'confirmation_code' in self.initial_data:
+            pass
+            #проверяем правильность кода,
+
+
+class SignUpSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CustomUser
+        fields = (
+            'username',
+            'email'
+        )
+
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
-        fields = ('id', 'name')
+        fields = ('name', 'slug', )
+        lookup_field = 'slug'
 
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genre
-        fields = ('id', 'name')
+        fields = ('name', 'slug', )
+        lookup_field = 'slug'
 
 
 class TitleSerializer(serializers.ModelSerializer):
-    genre = serializers.StringRelatedField(many=True, read_only=True)
+    category = CategorySerializer(read_only=True)
+    genre = GenreSerializer(read_only=True, many=True)
+    rating = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Title
-        fields = ('id', 'name', 'year', 'description', 'genre', 'category', )
+        fields = ('id', 'name', 'year', 'rating',
+                  'description', 'genre', 'category')
+
+
+class TitleCreateSerializer(serializers.ModelSerializer):
+    category = serializers.SlugRelatedField(
+        queryset=Category.objects.all(), slug_field='slug'
+    )
+    genre = serializers.SlugRelatedField(
+        queryset=Genre.objects.all(), slug_field='slug', many=True
+    )
+
+    class Meta:
+        fields = (
+            'id', 'name', 'year', 'description', 'genre', 'category'
+        )
+        model = Title
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only=True,
+        required=False,
+    )
+
+    class Meta:
+        read_only_fields = ('id', 'title', 'pub_date')
+        fields = ('id', 'text', 'score', 'author', 'pub_date')
+        model = Review
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    review = serializers.SlugRelatedField(
+        slug_field='text',
+        read_only=True
+    )
+    author = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only=True
+    )
+
+    class Meta:
+        fields = ('id', 'author', 'review', 'text', 'created', 'pub_date', )
+        model = Comment
