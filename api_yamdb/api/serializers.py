@@ -13,7 +13,7 @@ from rest_framework_simplejwt.tokens import AccessToken
 
 from api_yamdb.settings import SECRET_KEY
 from .methods import decode, encode, give_jwt_for
-from reviews.models import CustomUser, PreUser, ROLE_CHOICES
+from reviews.models import CustomUser, PreUser, ROLE_CHOICES, Category, Genre, Title
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
@@ -102,11 +102,6 @@ class MyTokenObtainSerializer(
         )
         try:
             payload = decode(confirmation_code)
-            #payload = jwt.decode(
-                #jwt=confirmation_code,
-                #key=SECRET_KEY,
-                #algorithms=['HS256']
-            #)
         except DecodeError:
             raise serializers.ValidationError(
                 'Данный код сфабрикован.'
@@ -123,7 +118,6 @@ class MyTokenObtainSerializer(
             raise serializers.ValidationError(
                 'Отправлен некорректный username.'
             )
-        #preuser = PreUser.objects.get(username=username_from_code)
         email_from_model = user_object.email
         if username_from_code != username_from_query:
             raise serializers.ValidationError(
@@ -145,8 +139,6 @@ class MyTokenObtainSerializer(
             user_object.delete()
             user_object = newborn
         
-        #token = AccessToken.for_user(user_object)
-        #token['role'] = user_object.role
         token = give_jwt_for(user_object)
         logger.debug(dir(token))
         logger.debug(f'Токен из serializers: {token}')
@@ -154,3 +146,23 @@ class MyTokenObtainSerializer(
         data = {'token': token}
 
         return data
+
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ('id', 'name')
+
+
+class GenreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Genre
+        fields = ('id', 'name')
+
+
+class TitleSerializer(serializers.ModelSerializer):
+    genre = serializers.StringRelatedField(many=True, read_only=True)
+
+    class Meta:
+        model = Title
+        fields = ('id', 'name', 'year', 'description', 'genre', 'category', )

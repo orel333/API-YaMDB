@@ -15,44 +15,12 @@ from .models import CustomUser, PreUser
 from api.serializers import logger
 
 
-# class CustomUserCreationForm(UserCreationForm):
-    # def save(self, commit=True):
-        # user = super().save(commit=False)
-        # user.set_password(self.cleaned_data["password1"])
-        # user_role = user.role
-        # email = user.email
-        # username = user.username
-        # if user_role == 'admin':
-            # user.is_staff = True
-        # user.save()
-        # dict = {
-            # 'email': email,
-            # 'username': username
-        # }
-        # confirmation_code = encode(dict)
-        # if user.is_superuser == True:
-            # token = give_jwt_for(user, is_superuser=True)
-            # first_line = f'Создан суперпользователь {username}.\n'
-        # else:
-            # first_line = f'Создан пользователь {username}.\n'
-            # token = give_jwt_for(user)
-# 
-# 
-        # print(f'{first_line}Его роль: {user_role}.\n'
-              # f'Его токен: {token}\n'
-              # f'Его confirmation_code для обновления токена:\n'
-              # f'{confirmation_code}')
-        # logger.debug(f'user is active: {user.is_active}')
-        # logger.debug(f'user is staff: {user.is_staff}')
-        # return user
-
 class AdminPermissions(admin.ModelAdmin):
     logger.debug('Admin permissions are exploited')
             
 
 @admin.register(CustomUser)
 class UserAdminConfig(UserAdmin):
-    #actions_selection_counter = False
     default_site = 'api_yamdb.users.admin.AdminAreaSite'
     list_display = (
         'pk',
@@ -62,7 +30,6 @@ class UserAdminConfig(UserAdmin):
         'last_name',
         'bio',
         'role',
-        #'is_superuser'
     )
     search_fields = ('username', 'email')
     list_filter = ('is_superuser', 'is_staff')
@@ -79,16 +46,12 @@ class UserAdminConfig(UserAdmin):
             'fields': ('is_staff',),
         }),
     )
-    # formfield_overrides = {
-        # CustomUser.bio: {'widget': Textarea(attrs={'rows':10, 'cols':40})},
-    # }
     add_fieldsets = (
         (None, {
             'classes': ('extrapretty',),
             'fields': ('username', 'email', 'password1', 'password2', 'role'),
         }),
     )
-   # add_form = CustomUserCreationForm
 
     def has_module_permission(self, request):
         return True
@@ -109,11 +72,6 @@ class UserAdminConfig(UserAdmin):
 
     def save_model(self, request, obj, form, change):
         logger.debug(change)
-        #logger.debug(f'role: {obj.role}')
-        #logger.debug(f'form: {form}')
-        #logger.debug(f'obj: {obj}')
-        #logger.debug(f'rd: {request.data}')
-        #logger.debug(request.method)
         if isinstance(obj, CustomUser):
             logger.debug('The object was recognized as CustomUser instance')
             super().save_model(request, obj, form, change)

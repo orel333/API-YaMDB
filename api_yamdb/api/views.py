@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import jwt
 import logging
 import sys
@@ -28,6 +29,15 @@ from reviews.models import CustomUser
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
 )
+=======
+from rest_framework import permissions, viewsets
+from reviews.models import Category, Genre, Title
+from users.models import CustomUser
+
+from .permissions import IsAdminOrReadOnly
+from .serializers import (CategorySerializer, CustomUserSerializer,
+                          GenreSerializer, TitleSerializer)
+>>>>>>> master
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -41,6 +51,7 @@ logger.debug('Логирование из views запущено')
 class UserViewSet(viewsets.ModelViewSet):
     queryset = CustomUser.objects.all()
     serializer_class = CustomUserSerializer
+<<<<<<< HEAD
     lookup_field = 'username'
     trailing_slash = '/'
 
@@ -183,3 +194,24 @@ class TokenView(TokenObtainPairView):
 
 
 
+=======
+    # pagination_class
+
+
+class CategoryViewSet(viewsets.ModelViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
+    permission_classes = [IsAdminOrReadOnly, ]
+
+
+class GenreViewSet(viewsets.ModelViewSet):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+    permission_classes = [IsAdminOrReadOnly, ]
+
+
+class TitleViewSet(viewsets.ModelViewSet):
+    queryset = Title.objects.all()
+    serializer_class = TitleSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly, ]
+>>>>>>> master

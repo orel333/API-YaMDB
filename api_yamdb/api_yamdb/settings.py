@@ -1,5 +1,5 @@
-from datetime import timedelta
 import os
+from datetime import timedelta
 
 from dotenv import load_dotenv
 
@@ -91,6 +91,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+AUTH_USER_MODEL = 'users.CustomUser'
 
 # Internationalization
 
