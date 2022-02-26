@@ -121,7 +121,7 @@ class PreUser(models.Model):
 
 class Category(models.Model):
     name = models.CharField(max_length=200,
-                            verbose_name='название категории')
+                            verbose_name='Название категории')
     slug = models.SlugField(
         unique=True,
         verbose_name="url-адрес категории",
@@ -129,8 +129,8 @@ class Category(models.Model):
 
     class Meta:
         ordering = ('name', )
-        verbose_name = 'категория'
-        verbose_name_plural = 'категории'
+        verbose_name = 'Категория'
+        verbose_name_plural = 'Категории'
 
     def __str__(self):
         return self.name
@@ -138,7 +138,7 @@ class Category(models.Model):
 
 class Genre(models.Model):
     name = models.CharField(max_length=50,
-                            verbose_name='название жанра')
+                            verbose_name='Название жанра')
     slug = models.SlugField(
         unique=True,
         verbose_name="url-адрес жанра",
@@ -146,8 +146,8 @@ class Genre(models.Model):
 
     class Meta:
         ordering = ('name', )
-        verbose_name = 'жанр'
-        verbose_name_plural = 'жанры'
+        verbose_name = 'Жанр'
+        verbose_name_plural = 'Жанры'
 
     def __str__(self):
         return self.name
@@ -165,7 +165,7 @@ class Title(models.Model):
         ],
     )
     description = models.TextField(max_length=500, blank=True,
-                                   verbose_name="описание")
+                                   verbose_name="Описание")
     genre = models.ManyToManyField(
         Genre,
         related_name="titles",
@@ -179,8 +179,8 @@ class Title(models.Model):
 
     def __str__(self):
         return self.name
-    
-    
+
+
 class Review(models.Model):
     title = models.ForeignKey(
         Title, on_delete=models.CASCADE, related_name='reviews',verbose_name='Произведения', null=True)
@@ -203,7 +203,6 @@ class Review(models.Model):
         'Дата публикации', auto_now_add=True
     )
 
-
     class Meta:
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
@@ -213,7 +212,7 @@ class Review(models.Model):
                 fields=('title', 'author', ),
                 name='unique_review'
             )]
-    
+
     def __str__(self):
         return self.text
 
@@ -239,11 +238,10 @@ class Comment(models.Model):
     pub_date = models.DateTimeField(
         'Дата публикации', auto_now_add=True, null=True
     )
+
     class Meta:
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
 
     def __str__(self):
         return self.text
-
-

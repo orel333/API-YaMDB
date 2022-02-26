@@ -181,16 +181,22 @@ class TokenView(TokenObtainPairView):
             logger.debug('Serializer is valid')
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_404_NOT_FOUND)
-        
+
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     pagination_class = PageNumberPagination
     permission_classes = [IsAdminOrReadOnly]
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', ]
     lookup_field = 'slug'
+
+    def retrieve(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def update(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class GenreViewSet(viewsets.ModelViewSet):
@@ -198,36 +204,31 @@ class GenreViewSet(viewsets.ModelViewSet):
     serializer_class = GenreSerializer
     pagination_class = PageNumberPagination
     permission_classes = [IsAdminOrReadOnly]
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', ]
     lookup_field = 'slug'
 
+    def retrieve(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+    def update(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.all()
-    pagination_class = PageNumberPagination
-    permission_classes = [IsAdminOrReadOnly]
-    filter_backends = [DjangoFilterBackend, ]
-    filterset_class = TitlesFilter
-
-    def get_serializer_class(self):
-        if self.action in ('list', 'retrieve'):
-            return TitleSerializer
-        return TitleCreateSerializer
-
-class TitleViewSet(viewsets.ModelViewSet):
-    # queryset = Title.objects.all()
     queryset = Title.objects.annotate(
         rating=Avg('reviews__score')
-    ).all
+    ).all()
     pagination_class = PageNumberPagination
-    filter_backends = [DjangoFilterBackend,]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_class = TitlesFilter
+    permission_classes = [IsAdminOrReadOnly, permissions.IsAuthenticatedOrReadOnly]
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return TitleSerializer
         return TitleCreateSerializer
+
 
 class ReviewViewSet(viewsets.ModelViewSet):
     """Пользователи оставляют к произведениям текстовые отзывы."""

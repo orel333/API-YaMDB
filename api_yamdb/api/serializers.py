@@ -1,20 +1,20 @@
-import jwt
-from jwt.exceptions import DecodeError
 import logging
 import re
 import sys
 import time
 
+import jwt
+from api_yamdb.settings import SECRET_KEY
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
-
+from jwt.exceptions import DecodeError
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import AccessToken
+from reviews.models import (ROLE_CHOICES, Category, Comment, CustomUser, Genre,
+                            PreUser, Review, Title)
 
-from api_yamdb.settings import SECRET_KEY
 from .methods import decode, encode, give_jwt_for
-from reviews.models import CustomUser, PreUser, ROLE_CHOICES, Category, Genre, Title, Comment, Review
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
@@ -167,18 +167,6 @@ class GenreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genre
         fields = ('name', 'slug', )
-
-
-class CategoryField(serializers.SlugRelatedField):
-    def to_representation(self, value):
-        serializer = CategorySerializer(value)
-        return serializer.data
-
-
-class GenreField(serializers.SlugRelatedField):
-    def to_representation(self, value):
-        serializer = GenreSerializer(value)
-        return serializer.data
 
 
 class TitleSerializer(serializers.ModelSerializer):
