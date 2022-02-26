@@ -1,16 +1,20 @@
+import jwt
+from jwt.exceptions import DecodeError
 import logging
 import re
 import sys
+import time
 
-import jwt
-from api_yamdb.settings import SECRET_KEY
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
-from jwt.exceptions import DecodeError
+
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import AccessToken
-from reviews.models import Category, Comment, Genre, Review, Title
-from users.models import ROLE_CHOICES, CustomUser, PreUser
+
+from api_yamdb.settings import SECRET_KEY
+from .methods import decode, encode, give_jwt_for
+from reviews.models import CustomUser, PreUser, ROLE_CHOICES, Category, Genre, Title, Comment, Review
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
@@ -26,7 +30,7 @@ logger.debug('Логирование из serializers запущено')
 
 
 class CustomUserSerializer(serializers.ModelSerializer):
-    role = serializers.ChoiceField(choices=ROLE_CHOICES)
+    role = serializers.ChoiceField(choices=ROLE_CHOICES, default='user')
 
     class Meta:
         model = CustomUser
@@ -84,7 +88,6 @@ class SignUpSerializer(serializers.ModelSerializer):
         logger.debug(f'Валидация email: {user}')
         return value
 
-
 class MyTokenObtainSerializer(
     serializers.Serializer,):
     token = serializers.CharField(read_only=True)
@@ -99,11 +102,7 @@ class MyTokenObtainSerializer(
             f'Validation: {username_from_query}:\n {confirmation_code}'
         )
         try:
-            payload = jwt.decode(
-                jwt=confirmation_code,
-                key=SECRET_KEY,
-                algorithms=['HS256']
-            )
+            payload = decode(confirmation_code)
         except DecodeError:
             raise serializers.ValidationError(
                 'Данный код сфабрикован.'
@@ -120,7 +119,6 @@ class MyTokenObtainSerializer(
             raise serializers.ValidationError(
                 'Отправлен некорректный username.'
             )
-        #preuser = PreUser.objects.get(username=username_from_code)
         email_from_model = user_object.email
         if username_from_code != username_from_query:
             raise serializers.ValidationError(
@@ -136,20 +134,37 @@ class MyTokenObtainSerializer(
         if preuser_object:
             custom_user_data = {
                 'username': username_from_query,
-                'email': email_from_model
+                'email': email_from_model,
             }
             newborn = CustomUser.objects.create_user(**custom_user_data)
             user_object.delete()
             user_object = newborn
         
-        token = AccessToken.for_user(user_object)
-        token['role'] = user_object.role
+        token = give_jwt_for(user_object)
         logger.debug(dir(token))
         logger.debug(f'Токен из serializers: {token}')
 
         data = {'token': token}
 
         return data
+
+    def create(self, validated_data):
+        if 'email' in self.initial_data:
+            pass
+            #отправляем письмо с кодом подтверждения на адрес email
+        if 'confirmation_code' in self.initial_data:
+            pass
+            #проверяем правильность кода,
+
+
+class SignUpSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = CustomUser
+        fields = (
+            'username',
+            'email'
+        )
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -188,6 +203,13 @@ class TitleSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'year', 'rating',
                   'description', 'genre', 'category')
 
+class TitleCreateSerializer(serializers.ModelSerializer):
+    category = serializers.SlugRelatedField(
+        queryset=Category.objects.all(), slug_field='slug'
+    )
+    genre = serializers.SlugRelatedField(
+        queryset=Genre.objects.all(), slug_field='slug', many=True
+    )
 
 class TitleCreateSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
@@ -198,18 +220,17 @@ class TitleCreateSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
+        fields = (
+            'id', 'name', 'year', 'description', 'genre', 'category'
+        )
         model = Title
-        fields = ('id', 'name', 'year', 'description', 'genre', 'category')
-  
+
 
 class ReviewSerializer(serializers.ModelSerializer):
-    title = serializers.SlugRelatedField(
-        slug_field='name',
-        read_only=True
-    )
     author = serializers.SlugRelatedField(
         slug_field='username',
-        read_only=True
+        read_only=True,
+        required=False,
     )
     text = serializers.CharField(allow_blank=True, required=True)
      

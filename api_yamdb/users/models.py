@@ -1,6 +1,12 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+ROLE_CHOICES = (
+    ('USER', 'Пользователь'),
+    ('MODERATOR', 'Модератор'),
+    ('ADMIN', 'Администратор'),
+)
+
 
 
 
@@ -17,7 +23,11 @@ class CustomUser(AbstractUser):
     role = models.CharField(
         'Роль',
         choices=ROLE_CHOICES,
+<<<<<<< HEAD
         default='user',
+=======
+        default='USER',
+>>>>>>> master
         max_length=16
     )
     email = models.EmailField('E-MAIL', unique=True, blank=False, null=False)

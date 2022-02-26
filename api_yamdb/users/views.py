@@ -13,7 +13,11 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenViewBase
 
 from users.models import CustomUser
+<<<<<<< HEAD
 from api.serializers import CustomUserSerializer, SignUpSerializer
+=======
+from .serializers import CustomUserSerializer, SignUpSerializer
+>>>>>>> master
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'

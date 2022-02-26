@@ -1,10 +1,8 @@
-
+import jwt
 import logging
 import sys
-import numpy
+import time
 
-import jwt
-from api_yamdb.settings import SECRET_KEY
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
@@ -12,26 +10,28 @@ from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
-from reviews.models import Category, Genre, Review, Title
-from users.models import CustomUser
+from rest_framework_simplejwt.views import TokenViewBase
 
+from api_yamdb.settings import SECRET_KEY
+from reviews.models import Category, Comment, Genre, Review, Title, CustomUser
+from users.models import CustomUser
 from .filters import TitlesFilter
-from .methods import get_user_role
-from .permissions import (IsAdminModeratorUserPermission,
-                          IsAdminUserCustom)
+from .methods import give_jwt_for, get_user_role, encode
+from .permissions import (IsAdminOrReadOnly, IsAdminUserCustom,IsAdminModeratorUserPermission,
+                          IsOwnerOrReadOnly)
 from .serializers import (CategorySerializer, CommentSerializer,
                           CustomUserSerializer, GenreSerializer,
-                          MyTokenObtainSerializer, ReviewSerializer,
-                          SignUpSerializer, TitleCreateSerializer,
-                          TitleSerializer)
+                          ReviewSerializer, SignUpSerializer,
+                          TitleCreateSerializer, TitleSerializer, MyTokenObtainSerializer)
+
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
 )
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 handler = logging.StreamHandler(sys.stdout)
@@ -69,7 +69,9 @@ class UserViewSet(viewsets.ModelViewSet):
             request_user_role = get_user_role(request.auth)
             logger.debug(f'User role: {request_user_role}')
             rd = request.data
-            rd['role'] = request_user_role
+            if 'role' in rd:
+                del rd['role']
+            #rd['role'] = request_user_role
             if 'username' not in rd:
                 rd['username'] = request_user.username
             if 'email' not in rd:
@@ -77,12 +79,52 @@ class UserViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(custom_user, data=rd)
             if serializer.is_valid():
                 serializer.save()
+                user=serializer.instance
+                if 'email' in rd or 'username' in rd:
+                    email = user.email
+                    username = user.username
+
+                    dict = {
+                        'email': email,
+                        'username': username
+                    }
+                    confirmation_code = encode(dict)
+                    print(f'Объект {username}\n Его новый confirmation_code:{confirmation_code}.')
                 return Response(serializer.data, status=status.HTTP_200_OK)
             return Response(serializer.errors, status=status.HTTP_200_OK)
-            
+
+    def perform_create(self, serializer):
+        rd = self.request.data
+        role = rd.get('role')
+        if role == 'admin':
+            is_staff = True
+        else:
+            is_staff = False
+        serializer.save(is_staff=is_staff)
+
+    def perform_update(self, serializer):
+        rd = self.request.data
+        role = rd.get('role')
+        if role == 'admin':
+            is_staff = True
+        else:
+            is_staff = False
+        serializer.save(is_staff=is_staff)
+        user = serializer.instance
+        if 'email' in rd or 'username' in rd:
+            email = user.email
+            username = user.username
+
+            dict = {
+                'email': email,
+                'username': username
+            }
+            confirmation_code = encode(dict)
+            print(f'Объект {username}\n Его новый confirmation_code:{confirmation_code}.')
 
 
 class APISignupView(APIView):
+    permission_classes = (permissions.AllowAny,)
 
     def post(self, request):
         logger.debug(request.data)
@@ -125,6 +167,8 @@ class APISignupView(APIView):
 
 
 class TokenView(TokenObtainPairView):
+    permission_classes = (permissions.AllowAny,)
+
     def post(self, request):
         rd = request.data
         logger.debug(f'View: request.data: {rd}')
@@ -140,6 +184,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     pagination_class = PageNumberPagination
+    permission_classes = [IsAdminOrReadOnly]
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', ]
     lookup_field = 'slug'
@@ -155,6 +200,7 @@ class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     pagination_class = PageNumberPagination
+    permission_classes = [IsAdminOrReadOnly]
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', ]
     lookup_field = 'slug'
@@ -165,6 +211,20 @@ class GenreViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
+    def retrieve(self, request, *args, **kwargs):
+        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+class TitleViewSet(viewsets.ModelViewSet):
+    queryset = Title.objects.all()
+    pagination_class = PageNumberPagination
+    permission_classes = [IsAdminOrReadOnly]
+    filter_backends = [DjangoFilterBackend, ]
+    filterset_class = TitlesFilter
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return TitleSerializer
+        return TitleCreateSerializer
 
 class TitleViewSet(viewsets.ModelViewSet):
     # queryset = Title.objects.all()
