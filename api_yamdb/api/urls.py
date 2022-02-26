@@ -1,11 +1,10 @@
 from django.urls import include, path
 from rest_framework import routers
-from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .routers import CustomRouter
-from .views import (APISignupView, CategoryViewSet, CommentViewSet,
-                    GenreViewSet, ReviewViewSet, TitleViewSet, TokenView,
-                    UserViewSet)
+from .views import (
+    APISignupView, TokenView, UserViewSet, CategoryViewSet, GenreViewSet, UserViewSet, TitleViewSet, CommentViewSet, ReviewViewSet
+)
 
 router_v1_a = CustomRouter()
 router_v1_a.register(r'users', UserViewSet)

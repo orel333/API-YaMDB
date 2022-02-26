@@ -5,6 +5,7 @@ import time
 import jwt
 from api_yamdb.settings import SECRET_KEY
 from django.core.mail import send_mail
+from django.db.models import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, permissions, status, viewsets
@@ -16,15 +17,17 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenViewBase
 from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
 
+from api_yamdb.settings import SECRET_KEY
+from reviews.models import Category, Comment, Genre, Review, Title, CustomUser
 from .filters import TitlesFilter
-from .methods import encode, get_user_role, give_jwt_for
-from .permissions import (IsAdminOrReadOnly, IsAdminUserCustom,
+from .methods import give_jwt_for, get_user_role, encode
+from .permissions import (IsAdminOrReadOnly, IsAdminUserCustom, IsAdminModeratorUserPermission,
                           IsOwnerOrReadOnly)
 from .serializers import (CategorySerializer, CommentSerializer,
                           CustomUserSerializer, GenreSerializer,
-                          MyTokenObtainSerializer, ReviewSerializer,
-                          SignUpSerializer, TitleCreateSerializer,
-                          TitleSerializer)
+                          ReviewSerializer, SignUpSerializer,
+                          TitleCreateSerializer, TitleSerializer, MyTokenObtainSerializer)
+
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
@@ -47,6 +50,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if 'getme' in self.action_map.values():
             logger.debug('Запущен эндпойнт me')
+            logger.debug(self.request.auth)
             return (permissions.IsAuthenticated(),)
         if self.suffix == 'users-list' or 'user-detail':
             logger.debug('Запущен эндпойнт users-list или user-detail')
@@ -61,6 +65,8 @@ class UserViewSet(viewsets.ModelViewSet):
         if request.method == 'GET':
             serializer = self.get_serializer(custom_user)
             logger.debug('Зафиксирован метод GET')
+            logger.debug(dir(request))
+            logger.debug(dir(self))
             return Response(serializer.data, status=status.HTTP_200_OK)
         if request.method == 'PATCH':
             request_user_role = get_user_role(request.auth)
@@ -159,7 +165,7 @@ class APISignupView(APIView):
             )
             logger.debug(encoded)
             
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -174,13 +180,8 @@ class TokenView(TokenObtainPairView):
         if serializer.is_valid():
             logger.debug('Serializer is valid')
             return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_404_NOT_FOUND)
         
-
-
-
-    # pagination_class
-
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
@@ -214,22 +215,51 @@ class TitleViewSet(viewsets.ModelViewSet):
             return TitleSerializer
         return TitleCreateSerializer
 
+class TitleViewSet(viewsets.ModelViewSet):
+    # queryset = Title.objects.all()
+    queryset = Title.objects.annotate(
+        rating=Avg('reviews__score')
+    ).all
+    pagination_class = PageNumberPagination
+    filter_backends = [DjangoFilterBackend,]
+    filterset_class = TitlesFilter
+
+    def get_serializer_class(self):
+        if self.action in ('list', 'retrieve'):
+            return TitleSerializer
+        return TitleCreateSerializer
 
 class ReviewViewSet(viewsets.ModelViewSet):
-    queryset = Review.objects.all()
+    """Пользователи оставляют к произведениям текстовые отзывы."""
     serializer_class = ReviewSerializer
-
+    http_method_names = ['get', 'post', 'patch', 'delete']
+    permission_classes = [IsAdminModeratorUserPermission, permissions.IsAuthenticatedOrReadOnly]
+      
     def get_queryset(self):
-        title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
-        return Review.objects.filter(title=title)
+        if getattr(self, 'swagger_fake_view', False):
+            return Title.objects.none()
+        review = get_object_or_404(Title, id=self.kwargs['title_id'])
+        return review.reviews.all()
 
     def perform_create(self, serializer):
-        title = get_object_or_404(
-            Title,
-            id=self.kwargs.get('title_id'))
-        serializer.save(title=title)
+        title = get_object_or_404(Title, id=self.kwargs['title_id'])
+        serializer.save(author=self.request.user, title=title)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
-    queryset = Comment.objects.all()
+    """Пользователи оставляют коментарии к отзывам."""
     serializer_class = CommentSerializer
+    permission_classes = [IsAdminModeratorUserPermission, permissions.IsAuthenticatedOrReadOnly]
+    http_method_names = ['get', 'post', 'patch', 'delete']
+    
+    def get_queryset(self):
+        review = get_object_or_404(
+            Review, id=self.kwargs['review_id'],
+            title__id=self.kwargs['title_id']
+        )
+        return review.comments.all()
+    
+    def perform_create(self, serializer):
+        review = get_object_or_404(Review, title_id=self.kwargs['title_id'],
+                                   id=self.kwargs['review_id'])
+        serializer.save(author=self.request.user, review=review)
