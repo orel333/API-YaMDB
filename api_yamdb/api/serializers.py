@@ -53,6 +53,7 @@ class SignUpSerializer(serializers.ModelSerializer):
         )
 
     def validate_username(self, value):
+        logger.debug('Валидация username запущена')
         user = None
         try:
             user = CustomUser.objects.get(username=value)
@@ -88,8 +89,7 @@ class SignUpSerializer(serializers.ModelSerializer):
         logger.debug(f'Валидация email: {user}')
         return value
 
-class MyTokenObtainSerializer(
-    serializers.Serializer,):
+class MyTokenObtainSerializer(serializers.Serializer):
     token = serializers.CharField(read_only=True)
 
     def validate(self, data):
@@ -157,16 +157,6 @@ class MyTokenObtainSerializer(
             #проверяем правильность кода,
 
 
-class SignUpSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = CustomUser
-        fields = (
-            'username',
-            'email'
-        )
-
-
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
@@ -203,13 +193,6 @@ class TitleSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'year', 'rating',
                   'description', 'genre', 'category')
 
-class TitleCreateSerializer(serializers.ModelSerializer):
-    category = serializers.SlugRelatedField(
-        queryset=Category.objects.all(), slug_field='slug'
-    )
-    genre = serializers.SlugRelatedField(
-        queryset=Genre.objects.all(), slug_field='slug', many=True
-    )
 
 class TitleCreateSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
