@@ -2,7 +2,7 @@
 import logging
 import sys
 import numpy
-
+import pprint
 import jwt
 from api_yamdb.settings import SECRET_KEY
 from django.core.mail import send_mail
@@ -167,10 +167,10 @@ class GenreViewSet(viewsets.ModelViewSet):
 
 
 class TitleViewSet(viewsets.ModelViewSet):
-    # queryset = Title.objects.all()
     queryset = Title.objects.annotate(
         rating=Avg('reviews__score')
-    ).all()   
+    ).all() 
+  
     pagination_class = PageNumberPagination
     filter_backends = [DjangoFilterBackend,]
     filterset_class = TitlesFilter
