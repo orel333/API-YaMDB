@@ -5,6 +5,7 @@ import re
 import sys
 import time
 
+from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 
 from rest_framework import serializers
@@ -180,6 +181,18 @@ class GenreSerializer(serializers.ModelSerializer):
         lookup_field = 'slug'
 
 
+class CategoryField(serializers.SlugRelatedField):
+    def to_representation(self, value):
+        serializer = CategorySerializer(value)
+        return serializer.data
+
+
+class GenreField(serializers.SlugRelatedField):
+    def to_representation(self, value):
+        serializer = GenreSerializer(value)
+        return serializer.data
+
+
 class TitleSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     genre = GenreSerializer(read_only=True, many=True)
@@ -190,6 +203,13 @@ class TitleSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'year', 'rating',
                   'description', 'genre', 'category')
 
+class TitleCreateSerializer(serializers.ModelSerializer):
+    category = serializers.SlugRelatedField(
+        queryset=Category.objects.all(), slug_field='slug'
+    )
+    genre = serializers.SlugRelatedField(
+        queryset=Genre.objects.all(), slug_field='slug', many=True
+    )
 
 class TitleCreateSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
@@ -212,11 +232,25 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only=True,
         required=False,
     )
+    text = serializers.CharField(allow_blank=True, required=True)
+     
 
     class Meta:
-        read_only_fields = ('id', 'title', 'pub_date')
-        fields = ('id', 'text', 'score', 'author', 'pub_date')
+        fields = ('id', 'text', 'score', 'author', 'pub_date', 'title')
         model = Review
+
+   
+    def validate(self, data):
+        request = self.context['request']
+        author = request.user
+        title_id = self.context['view'].kwargs.get('title_id')
+        title = get_object_or_404(Title, pk=title_id)
+        if (
+            request.method == 'POST'
+            and Review.objects.filter(title=title, author=author).exists()
+        ):
+            raise ValidationError('Можно оставлять не более одного отзыва!')
+        return data
 
 
 class CommentSerializer(serializers.ModelSerializer):
@@ -230,5 +264,5 @@ class CommentSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        fields = ('id', 'author', 'review', 'text', 'created', 'pub_date', )
+        fields = ('id', 'author',  'text', 'pub_date', 'review')
         model = Comment

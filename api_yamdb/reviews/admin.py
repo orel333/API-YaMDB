@@ -12,7 +12,15 @@ from api_yamdb.settings import EMPTY_VALUE
 from api.methods import encode, give_jwt_for
 from .models import CustomUser, PreUser
 
+from .models import Category, Comment, Genre, Review, Title
 from api.serializers import logger
+
+
+admin.site.register(Comment)
+admin.site.register(Review)
+admin.site.register(Category)
+admin.site.register(Genre)
+admin.site.register(Title)
 
 
 class AdminPermissions(admin.ModelAdmin):
@@ -117,6 +125,9 @@ class UserAdminConfig(UserAdmin):
             logger.debug(f'user is staff: {obj.is_staff}')
         else:
             super().save_model(request, obj, form, change)
+
+
+
 
 @admin.register(PreUser)
 class PreUser(admin.ModelAdmin):
