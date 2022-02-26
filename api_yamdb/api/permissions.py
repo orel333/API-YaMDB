@@ -17,12 +17,13 @@ logger.debug('Логирование из permissions запущено')
 
 
 class IsAdminUserCustom(BasePermission):
-    def has_permission(self, request, view):
-        logger.debug(f'dir request: {dir(request)}')
-        logger.debug('IsAdminUserCustomPermission запущен, уровень запроса.')
-        logger.debug(request.user.role)
-        return request.user.is_staff or request.user.is_superuser
-
+    # def has_permission(self, request, view):
+    #     logger.debug(f'dir request: {dir(request)}')
+    #     logger.debug('IsAdminUserCustomPermission запущен, уровень запроса.')
+    #     logger.debug(request.user.role)
+    #     return request.user.is_staff or request.user.is_superuser
+    # pass
+    pass
 
 class IsAdminModeratorUserPermission(BasePermission):
 
@@ -43,8 +44,15 @@ class IsAdminModeratorUserPermission(BasePermission):
 class IsOwnerOrReadOnly(BasePermission):
     def has_object_permission(self, request, view, obj):
         return request.method in SAFE_METHODS or obj.author == request.user
+   
 
 
 class IsAdminUserCustom(BasePermission):
     def has_permission(self, request, view):
         return request.user.role == 'admin'
+   
+
+
+class IsAdminOrReadOnly(BasePermission):
+    pass
+    

@@ -18,7 +18,7 @@ from rest_framework_simplejwt.views import TokenViewBase
 
 from api_yamdb.settings import SECRET_KEY
 from reviews.models import Category, Comment, Genre, Review, Title, CustomUser
-from users.models import CustomUser
+
 from .filters import TitlesFilter
 from .methods import give_jwt_for, get_user_role, encode
 from .permissions import (IsAdminOrReadOnly, IsAdminUserCustom,IsAdminModeratorUserPermission,
@@ -214,17 +214,6 @@ class GenreViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.all()
-    pagination_class = PageNumberPagination
-    permission_classes = [IsAdminOrReadOnly]
-    filter_backends = [DjangoFilterBackend, ]
-    filterset_class = TitlesFilter
-
-    def get_serializer_class(self):
-        if self.action in ('list', 'retrieve'):
-            return TitleSerializer
-        return TitleCreateSerializer
 
 class TitleViewSet(viewsets.ModelViewSet):
     # queryset = Title.objects.all()
@@ -239,6 +228,8 @@ class TitleViewSet(viewsets.ModelViewSet):
         if self.action in ('list', 'retrieve'):
             return TitleSerializer
         return TitleCreateSerializer
+
+
 
 class ReviewViewSet(viewsets.ModelViewSet):
     """Пользователи оставляют к произведениям текстовые отзывы."""

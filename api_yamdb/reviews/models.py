@@ -105,6 +105,7 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return f'{self.username}: {self.email}, уровень доступа: {self.role}'
+    
 
 
 class PreUser(models.Model):
@@ -170,7 +171,6 @@ class Title(models.Model):
         Category, on_delete=models.SET_NULL,
         related_name="titles", null=True,
     )
-    rating = models.IntegerField(blank=True, null=True)
 
     def __str__(self):
         return self.name
