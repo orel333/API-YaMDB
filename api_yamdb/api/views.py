@@ -1,8 +1,9 @@
-import jwt
 import logging
 import sys
 import time
 
+import jwt
+from api_yamdb.settings import SECRET_KEY
 from django.core.mail import send_mail
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
@@ -12,28 +13,18 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework_simplejwt.views import TokenViewBase
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenViewBase
+from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
 
-from api_yamdb.settings import SECRET_KEY
-from reviews.models import Category, Comment, Genre, Review, Title, CustomUser
-from users.models import CustomUser
 from .filters import TitlesFilter
-from .methods import give_jwt_for, get_user_role, encode
+from .methods import encode, get_user_role, give_jwt_for
 from .permissions import (IsAdminOrReadOnly, IsAdminUserCustom,
                           IsOwnerOrReadOnly)
 from .serializers import (CategorySerializer, CommentSerializer,
                           CustomUserSerializer, GenreSerializer,
-                          ReviewSerializer, SignUpSerializer,
-                          TitleCreateSerializer, TitleSerializer, MyTokenObtainSerializer)
-
-=======
-from reviews.models import Category, Genre, Title
-from users.models import CustomUser
-
-from .permissions import IsAdminOrReadOnly
-from .serializers import (CategorySerializer, CustomUserSerializer,
-                          GenreSerializer, TitleSerializer)
+                          MyTokenObtainSerializer, ReviewSerializer,
+                          SignUpSerializer, TitleCreateSerializer,
+                          TitleSerializer)
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
@@ -200,12 +191,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
     search_fields = ['name', ]
     lookup_field = 'slug'
 
-    def retrieve(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    def update(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
 
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
@@ -215,12 +200,6 @@ class GenreViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', ]
     lookup_field = 'slug'
-
-    def retrieve(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    def update(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
 class TitleViewSet(viewsets.ModelViewSet):

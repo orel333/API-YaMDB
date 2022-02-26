@@ -3,9 +3,9 @@ from rest_framework import routers
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from .routers import CustomRouter
-from .views import (
-    APISignupView, TokenView, UserViewSet, CategoryViewSet, GenreViewSet, MyUserViewSet, TitleViewSet, CommentViewSet, ReviewViewSet
-)
+from .views import (APISignupView, CategoryViewSet, CommentViewSet,
+                    GenreViewSet, ReviewViewSet, TitleViewSet, TokenView,
+                    UserViewSet)
 
 router_v1_a = CustomRouter()
 router_v1_a.register(r'users', UserViewSet)
@@ -14,7 +14,7 @@ router_v1_b.register(r'categories', CategoryViewSet, basename='categories')
 router_v1_b.register(r'genres', GenreViewSet, basename='genres')
 router_v1_b.register(r'titles', TitleViewSet, basename='titles')
 router_v1_b.register(r'titles/(?P<title_id>\d+)/reviews', ReviewViewSet,
-                   basename='review')
+                     basename='review')
 router_v1_b.register(
     r'titles/(?P<title_id>\d+)/reviews/(?P<review_id>\d+)/comments',
     CommentViewSet,

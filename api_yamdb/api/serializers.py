@@ -138,7 +138,7 @@ class MyTokenObtainSerializer(
             newborn = CustomUser.objects.create_user(**custom_user_data)
             user_object.delete()
             user_object = newborn
-        
+
         token = give_jwt_for(user_object)
         logger.debug(dir(token))
         logger.debug(f'Токен из serializers: {token}')
@@ -170,14 +170,12 @@ class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ('name', 'slug', )
-        lookup_field = 'slug'
 
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genre
         fields = ('name', 'slug', )
-        lookup_field = 'slug'
 
 
 class TitleSerializer(serializers.ModelSerializer):
