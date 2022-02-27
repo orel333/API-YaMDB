@@ -37,6 +37,7 @@ def admin_or_superuser(request):
     logger.debug(f'staff: {is_staff}, superuser: {is_superuser}, role: {role}')
     return (is_staff or is_superuser or role == 'admin')
 
+
 class IsAdminUserCustom(BasePermission):
     def has_permission(self, request, view):
         logger.debug(f'dir request: {dir(request)}')
@@ -52,22 +53,24 @@ class IsAdminUserCustom(BasePermission):
 class IsAdminModeratorUserPermission(BasePermission):
 
     def has_permission(self, request, view):
-        return (request.method in SAFE_METHODS
+        return (
+            request.method in SAFE_METHODS
             or request.user.is_authenticated
         )
-        
+
     def has_object_permission(self, request, view, obj):
         request_user = request.user
         try:
             user_role = request_user.role
         except AttributeError:
             pass
-        return (request.method in SAFE_METHODS
+        return (
+            request.method in SAFE_METHODS
             or obj.author == request.user
             or admin_or_superuser(request)
             or user_role == 'moderator'
         )
-        
+
 
 class IsOwnerOrReadOnly(BasePermission):
     def has_object_permission(self, request, view, obj):

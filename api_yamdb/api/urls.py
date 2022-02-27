@@ -3,7 +3,14 @@ from rest_framework import routers
 
 from .routers import CustomRouter
 from .views import (
-    APISignupView, TokenView, UserViewSet, CategoryViewSet, GenreViewSet, UserViewSet, TitleViewSet, CommentViewSet, ReviewViewSet
+    APISignupView,
+    CategoryViewSet,
+    CommentViewSet,
+    GenreViewSet,
+    ReviewViewSet,
+    TitleViewSet,
+    TokenView,
+    UserViewSet,
 )
 
 router_v1_a = CustomRouter()
