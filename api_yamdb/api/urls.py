@@ -3,7 +3,7 @@ from rest_framework import routers
 
 from .routers import CustomRouter
 from .views import (
-    APISignupView, TokenView, UserViewSet, CategoryViewSet, GenreViewSet, TitleViewSet, CommentViewSet, ReviewViewSet
+    APISignupView, TokenView, UserViewSet, CategoryViewSet, GenreViewSet, UserViewSet, TitleViewSet, CommentViewSet, ReviewViewSet
 )
 
 router_v1_a = CustomRouter()
@@ -13,7 +13,7 @@ router_v1_b.register(r'categories', CategoryViewSet, basename='categories')
 router_v1_b.register(r'genres', GenreViewSet, basename='genres')
 router_v1_b.register(r'titles', TitleViewSet, basename='titles')
 router_v1_b.register(r'titles/(?P<title_id>\d+)/reviews', ReviewViewSet,
-                   basename='review')
+                     basename='review')
 router_v1_b.register(
     r'titles/(?P<title_id>\d+)/reviews/(?P<review_id>\d+)/comments',
     CommentViewSet,

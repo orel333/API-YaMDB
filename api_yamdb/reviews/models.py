@@ -30,6 +30,7 @@ ROLE_CHOICES = (
 
 class CustomUserManager(BaseUserManager):
     def create_superuser(self, username, email, password, **other_fields):
+        logger.debug('SuperUser is being initialized...')
         other_fields.setdefault('is_staff', True)
         other_fields.setdefault('is_superuser', True)
         other_fields.setdefault('is_active', True)
@@ -41,13 +42,22 @@ class CustomUserManager(BaseUserManager):
             raise ValueError(
                 '"is_superuser" суперпользователя должно быть в режиме "True"'
             )
-        role = 'admin'
+        logger.debug(
+            f'Here are some other fields in parameters: {other_fields}'
+        )
+        if 'role' in other_fields:
+            role = other_fields.get('role')
+            del other_fields['role']
+        else:
+            role = 'admin'
 
         return self.create_user(username, email, role, password, **other_fields)
 
     def create_user(self, username, email, role='user', password=None, **other_fields):
         logger.debug(f'Got role: {role}')
         logger.debug(f'Got password: {password}')
+        logger.debug(f'Is_staff: {other_fields.get("is_staff")}')
+        logger.debug(f'Is_superuser: {other_fields.get("is_superuser")}')
         logger.debug('Create user func was initiated')
         if not email:
             raise ValueError('Необходимо указать email')
@@ -82,6 +92,7 @@ class CustomUserManager(BaseUserManager):
               f'Его токен: {token}\n'
               f'Его confirmation_code для обновления токена:\n'
               f'{confirmation_code}')
+        logger.debug(f'user_if_staff:{user.is_staff}')
         return user
 
 
@@ -119,20 +130,19 @@ class PreUser(models.Model):
     def __str__(self):
         return f'{self.username}: {self.email}'
 
+
 class Category(models.Model):
-    # Выбор начальных категорий
-    CATEGORY_CHOICES = (
-        ('MUSIC', 'Музыка'),
-        ('FILM', 'Фильмы'),
-        ('BOOK', 'Книги'),
-    )
     name = models.CharField(max_length=200,
-                            null=False,
-                            verbose_name='название категории')
+                            verbose_name='Название категории')
     slug = models.SlugField(
         unique=True,
         verbose_name="url-адрес категории",
     )
+
+    class Meta:
+        ordering = ('name', )
+        verbose_name = 'Категория'
+        verbose_name_plural = 'Категории'
 
     def __str__(self):
         return self.name
@@ -140,42 +150,49 @@ class Category(models.Model):
 
 class Genre(models.Model):
     name = models.CharField(max_length=50,
-                            null=False,
-                            verbose_name='название жанра')
+                            verbose_name='Название жанра')
     slug = models.SlugField(
         unique=True,
         verbose_name="url-адрес жанра",
     )
+
+    class Meta:
+        ordering = ('name', )
+        verbose_name = 'Жанр'
+        verbose_name_plural = 'Жанры'
 
     def __str__(self):
         return self.name
 
 
 class Title(models.Model):
-    name = models.CharField(max_length=200)
+    name = models.CharField(max_length=200,
+                            verbose_name="Название произведения")
     year = models.PositiveIntegerField(
+        verbose_name="Год создания",
         default=0,
         validators=[
             MinValueValidator(0),
             MaxValueValidator(datetime.datetime.now().year)
         ],
-        verbose_name="Год выпуска",
     )
-    description = models.TextField(max_length=500, blank=True)
+    description = models.TextField(max_length=500, blank=True,
+                                   verbose_name="Описание")
     genre = models.ManyToManyField(
         Genre,
         related_name="titles",
-        blank=True,
+        blank=True, verbose_name='Жанр'
     )
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL,
         related_name="titles", null=True,
+        blank=True, verbose_name='Категория'
     )
 
     def __str__(self):
         return self.name
-    
-    
+
+
 class Review(models.Model):
     title = models.ForeignKey(
         Title, on_delete=models.CASCADE, related_name='reviews',verbose_name='Произведения', null=True)
@@ -198,7 +215,6 @@ class Review(models.Model):
         'Дата публикации', auto_now_add=True
     )
 
-
     class Meta:
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
@@ -208,7 +224,7 @@ class Review(models.Model):
                 fields=('title', 'author', ),
                 name='unique_review'
             )]
-    
+
     def __str__(self):
         return self.text
 
@@ -234,11 +250,10 @@ class Comment(models.Model):
     pub_date = models.DateTimeField(
         'Дата публикации', auto_now_add=True, null=True
     )
+
     class Meta:
         verbose_name = 'Комментарий'
         verbose_name_plural = 'Комментарии'
 
     def __str__(self):
         return self.text
-
-

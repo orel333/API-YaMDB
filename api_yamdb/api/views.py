@@ -1,8 +1,9 @@
-import jwt
 import logging
 import sys
 import time
 
+import jwt
+from api_yamdb.settings import SECRET_KEY
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
@@ -13,15 +14,15 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework_simplejwt.views import TokenViewBase
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenViewBase
+from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
 
 from api_yamdb.settings import SECRET_KEY
 from reviews.models import Category, Comment, Genre, Review, Title, CustomUser
 
 from .filters import TitlesFilter
 from .methods import give_jwt_for, get_user_role, encode
-from .permissions import (IsAdminOrReadOnly, IsAdminUserCustom,IsAdminModeratorUserPermission,
+from .permissions import (IsAdminOrReadOnly, IsAdminUserCustom, IsAdminModeratorUserPermission,
                           IsOwnerOrReadOnly)
 from .serializers import (CategorySerializer, CommentSerializer,
                           CustomUserSerializer, GenreSerializer,
@@ -50,6 +51,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def get_permissions(self):
         if 'getme' in self.action_map.values():
             logger.debug('Запущен эндпойнт me')
+            logger.debug(self.request.auth)
             return (permissions.IsAuthenticated(),)
         if self.suffix == 'users-list' or 'user-detail':
             logger.debug('Запущен эндпойнт users-list или user-detail')
@@ -64,11 +66,13 @@ class UserViewSet(viewsets.ModelViewSet):
         if request.method == 'GET':
             serializer = self.get_serializer(custom_user)
             logger.debug('Зафиксирован метод GET')
+            logger.debug(dir(request))
+            logger.debug(dir(self))
             return Response(serializer.data, status=status.HTTP_200_OK)
         if request.method == 'PATCH':
             request_user_role = get_user_role(request.auth)
             logger.debug(f'User role: {request_user_role}')
-            rd = request.data
+            rd = request.data.copy()
             if 'role' in rd:
                 del rd['role']
             #rd['role'] = request_user_role
@@ -131,6 +135,7 @@ class APISignupView(APIView):
         serializer = SignUpSerializer(data=request.data)
         if serializer.is_valid():
             logger.debug('Валидация APISignupView пройдена')
+            # serializer.save(is_active=False)
             serializer.save()
             email = request.data.get('email')
             username = request.data.get('username')
@@ -162,7 +167,7 @@ class APISignupView(APIView):
             )
             logger.debug(encoded)
             
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -177,15 +182,15 @@ class TokenView(TokenObtainPairView):
         if serializer.is_valid():
             logger.debug('Serializer is valid')
             return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+        return Response(serializer.errors, status=status.HTTP_404_NOT_FOUND)
+
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     pagination_class = PageNumberPagination
     permission_classes = [IsAdminOrReadOnly]
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', ]
     lookup_field = 'slug'
 
@@ -201,7 +206,7 @@ class GenreViewSet(viewsets.ModelViewSet):
     serializer_class = GenreSerializer
     pagination_class = PageNumberPagination
     permission_classes = [IsAdminOrReadOnly]
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', ]
     lookup_field = 'slug'
 
@@ -211,18 +216,15 @@ class GenreViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    def retrieve(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
 
 class TitleViewSet(viewsets.ModelViewSet):
-    # queryset = Title.objects.all()
     queryset = Title.objects.annotate(
         rating=Avg('reviews__score')
-    ).all()   
+    ).all()
     pagination_class = PageNumberPagination
-    filter_backends = [DjangoFilterBackend,]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_class = TitlesFilter
+    permission_classes = [IsAdminOrReadOnly, permissions.IsAuthenticatedOrReadOnly]
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
