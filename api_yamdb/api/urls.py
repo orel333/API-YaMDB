@@ -13,7 +13,7 @@ router_v1_b.register(r'categories', CategoryViewSet, basename='categories')
 router_v1_b.register(r'genres', GenreViewSet, basename='genres')
 router_v1_b.register(r'titles', TitleViewSet, basename='titles')
 router_v1_b.register(r'titles/(?P<title_id>\d+)/reviews', ReviewViewSet,
-                   basename='review')
+                     basename='review')
 router_v1_b.register(
     r'titles/(?P<title_id>\d+)/reviews/(?P<review_id>\d+)/comments',
     CommentViewSet,
