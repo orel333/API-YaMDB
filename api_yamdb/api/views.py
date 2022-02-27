@@ -70,7 +70,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if request.method == 'PATCH':
             request_user_role = get_user_role(request.auth)
             logger.debug(f'User role: {request_user_role}')
-            rd = request.data
+            rd = request.data.copy()
             if 'role' in rd:
                 del rd['role']
             #rd['role'] = request_user_role
@@ -133,6 +133,7 @@ class APISignupView(APIView):
         serializer = SignUpSerializer(data=request.data)
         if serializer.is_valid():
             logger.debug('Валидация APISignupView пройдена')
+            # serializer.save(is_active=False)
             serializer.save()
             email = request.data.get('email')
             username = request.data.get('username')
