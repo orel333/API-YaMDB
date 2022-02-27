@@ -1,8 +1,9 @@
-import jwt
 import logging
 import sys
 import time
 
+import jwt
+from api_yamdb.settings import SECRET_KEY
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
@@ -13,8 +14,8 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework_simplejwt.views import TokenViewBase
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenViewBase
+from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
 
 from api_yamdb.settings import SECRET_KEY
 from reviews.models import Category, Comment, Genre, Review, Title, CustomUser
@@ -181,14 +182,14 @@ class TokenView(TokenObtainPairView):
             logger.debug('Serializer is valid')
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_404_NOT_FOUND)
-        
+
 
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     pagination_class = PageNumberPagination
     permission_classes = [IsAdminOrReadOnly]
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', ]
     lookup_field = 'slug'
 
@@ -204,7 +205,7 @@ class GenreViewSet(viewsets.ModelViewSet):
     serializer_class = GenreSerializer
     pagination_class = PageNumberPagination
     permission_classes = [IsAdminOrReadOnly]
-    filter_backends = [filters.SearchFilter]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     search_fields = ['name', ]
     lookup_field = 'slug'
 
@@ -214,34 +215,21 @@ class GenreViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
-    def retrieve(self, request, *args, **kwargs):
-        return Response(status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 class TitleViewSet(viewsets.ModelViewSet):
-    queryset = Title.objects.all()
-    pagination_class = PageNumberPagination
-    permission_classes = [IsAdminOrReadOnly]
-    filter_backends = [DjangoFilterBackend, ]
-    filterset_class = TitlesFilter
-
-    def get_serializer_class(self):
-        if self.action in ('list', 'retrieve'):
-            return TitleSerializer
-        return TitleCreateSerializer
-
-class TitleViewSet(viewsets.ModelViewSet):
-    # queryset = Title.objects.all()
     queryset = Title.objects.annotate(
         rating=Avg('reviews__score')
-    ).all
+    ).all()
     pagination_class = PageNumberPagination
-    filter_backends = [DjangoFilterBackend,]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter]
     filterset_class = TitlesFilter
+    permission_classes = [IsAdminOrReadOnly, permissions.IsAuthenticatedOrReadOnly]
 
     def get_serializer_class(self):
         if self.action in ('list', 'retrieve'):
             return TitleSerializer
         return TitleCreateSerializer
+
 
 class ReviewViewSet(viewsets.ModelViewSet):
     """Пользователи оставляют к произведениям текстовые отзывы."""
