@@ -19,6 +19,7 @@ from reviews.models import Category, Comment, CustomUser, Genre, Review, Title
 
 from api_yamdb.settings import SECRET_KEY
 from reviews.models import Category, Comment, Genre, Review, Title, CustomUser
+
 from .filters import TitlesFilter
 from .methods import give_jwt_for, get_user_role, encode
 from .permissions import (IsAdminOrReadOnly, IsAdminUserCustom, IsAdminModeratorUserPermission,
@@ -229,6 +230,7 @@ class TitleViewSet(viewsets.ModelViewSet):
         if self.action in ('list', 'retrieve'):
             return TitleSerializer
         return TitleCreateSerializer
+
 
 
 class ReviewViewSet(viewsets.ModelViewSet):

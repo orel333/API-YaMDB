@@ -116,6 +116,7 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return f'{self.username}: {self.email}, уровень доступа: {self.role}'
+    
 
 
 class PreUser(models.Model):
