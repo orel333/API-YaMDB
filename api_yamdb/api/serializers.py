@@ -1,21 +1,16 @@
 import logging
 import re
 import sys
-import time
 
-import jwt
-from api_yamdb.settings import SECRET_KEY
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 
 from rest_framework import exceptions, serializers
 from jwt.exceptions import DecodeError
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from rest_framework_simplejwt.tokens import AccessToken
 from reviews.models import (ROLE_CHOICES, Category, Comment, CustomUser, Genre,
-                            PreUser, Review, Title)
+                            Review, Title)
 
-from .methods import decode, encode, give_jwt_for
+from .methods import decode, give_jwt_for
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
@@ -58,7 +53,7 @@ class SignUpSerializer(serializers.ModelSerializer):
         user = None
         try:
             user = CustomUser.objects.get(username=value)
-        except:
+        except CustomUser.DoesNotExist:
             pass
         if user is not None:
             raise serializers.ValidationError(
@@ -81,7 +76,7 @@ class SignUpSerializer(serializers.ModelSerializer):
         user = None
         try:
             user = CustomUser.objects.get(email=value)
-        except:
+        except CustomUser.DoesNotExist:
             pass
         if user is not None:
             raise serializers.ValidationError(
@@ -89,6 +84,7 @@ class SignUpSerializer(serializers.ModelSerializer):
             )
         logger.debug(f'Валидация email: {user}')
         return value
+
 
 class MyTokenObtainSerializer(serializers.Serializer):
     token = serializers.CharField(read_only=True)
@@ -133,13 +129,12 @@ class MyTokenObtainSerializer(serializers.Serializer):
                 'Либо Вы сейчас указали не то имя пользователя, '
                 'которое указали при получении кода подтверждения.'
             )
-        if  email_from_code != email_from_model:
+        if email_from_code != email_from_model:
             raise exceptions.ParseError(
                 'Похоже на подложный код подтверждения.'
             )
 
         if user_object:
-            # user_object.is_active=True
             token = give_jwt_for(user_object)
             logger.debug(dir(token))
             logger.debug(f'Токен из serializers: {token}')
@@ -153,10 +148,8 @@ class MyTokenObtainSerializer(serializers.Serializer):
     def create(self, validated_data):
         if 'email' in self.initial_data:
             pass
-            #отправляем письмо с кодом подтверждения на адрес email
         if 'confirmation_code' in self.initial_data:
             pass
-            #проверяем правильность кода,
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -204,13 +197,11 @@ class ReviewSerializer(serializers.ModelSerializer):
         required=False,
     )
     text = serializers.CharField(allow_blank=True, required=True)
-     
 
     class Meta:
         fields = ('id', 'text', 'score', 'author', 'pub_date', 'title')
         model = Review
 
-   
     def validate(self, data):
         request = self.context['request']
         author = request.user
@@ -235,5 +226,5 @@ class CommentSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        fields = ('id', 'author',  'text', 'pub_date', 'review')
+        fields = ('id', 'author', 'text', 'pub_date', 'review')
         model = Comment

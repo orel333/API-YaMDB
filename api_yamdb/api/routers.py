@@ -2,7 +2,7 @@ from rest_framework.routers import Route, DynamicRoute, SimpleRouter
 
 
 class CustomRouter(SimpleRouter):
-    routes = [  # try tuple
+    routes = (  # try tuple
         Route(
             url=r'^{prefix}{trailing_slash}$',
             mapping={
@@ -29,4 +29,4 @@ class CustomRouter(SimpleRouter):
             detail=True,
             initkwargs={'suffix': 'user-detail'}
         )
-    ]
+    )

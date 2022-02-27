@@ -60,7 +60,7 @@ class IsAdminModeratorUserPermission(BasePermission):
         request_user = request.user
         try:
             user_role = request_user.role
-        except KeyError:
+        except AttributeError:
             pass
         return (request.method in SAFE_METHODS
             or obj.author == request.user

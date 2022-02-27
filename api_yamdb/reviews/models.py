@@ -2,11 +2,15 @@ import datetime
 import logging
 import sys
 
-from django.contrib.auth.models import AbstractUser, BaseUserManager, PermissionsMixin
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.core.validators import (
+    MaxValueValidator,
+    MinValueValidator,
+    RegexValidator
+)
 from django.db import models
 
-from api.methods import encode, give_jwt_for
+from api.methods import encode, give_jwt_for, text_processor
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
@@ -20,13 +24,12 @@ handler.setFormatter(formatter)
 logger.disabled = False
 logger.debug('Логирование из models запущено')
 
-
-
 ROLE_CHOICES = (
     ('user', 'Пользователь'),
     ('moderator', 'Модератор'),
     ('admin', 'Администратор'),
 )
+
 
 class CustomUserManager(BaseUserManager):
     def create_superuser(self, username, email, password, **other_fields):
@@ -51,9 +54,22 @@ class CustomUserManager(BaseUserManager):
         else:
             role = 'admin'
 
-        return self.create_user(username, email, role, password, **other_fields)
+        return self.create_user(
+            username,
+            email,
+            role,
+            password,
+            **other_fields
+        )
 
-    def create_user(self, username, email, role='user', password=None, **other_fields):
+    def create_user(
+        self,
+        username,
+        email,
+        role='user',
+        password=None,
+        **other_fields
+    ):
         logger.debug(f'Got role: {role}')
         logger.debug(f'Got password: {password}')
         logger.debug(f'Is_staff: {other_fields.get("is_staff")}')
@@ -80,18 +96,19 @@ class CustomUserManager(BaseUserManager):
             'username': username
         }
         confirmation_code = encode(dict)
-        if user.is_superuser == True:
+        if user.is_superuser is True:
             token = give_jwt_for(user, is_superuser=True)
             first_line = f'Создан суперпользователь {username}.\n'
         else:
             first_line = f'Создан пользователь {username}.\n'
             token = give_jwt_for(user)
 
-
-        print(f'{first_line}Его роль: {role}.'
-              f'Его токен: {token}\n'
-              f'Его confirmation_code для обновления токена:\n'
-              f'{confirmation_code}')
+        print(
+            f'{first_line}Его роль: {role}.'
+            f'Его токен: {token}\n'
+            f'Его confirmation_code для обновления токена:\n'
+            f'{confirmation_code}'
+        )
         logger.debug(f'user_if_staff:{user.is_staff}')
         return user
 
@@ -106,7 +123,20 @@ class CustomUser(AbstractUser):
         max_length=16
     )
     email = models.EmailField('E-MAIL', unique=True, blank=False, null=False)
-    username = models.CharField(max_length=150, unique=True)
+    username = models.CharField(
+        max_length=150,
+        unique=True,
+        validators=(
+            RegexValidator(
+                regex=r'^[mM][eE]$',
+                message=(
+                    'Попытка регистрации пользователя '
+                    'под me-образным именем'
+                ),
+                inverse_match=True
+            ),
+        ),
+    )
 
     objects = CustomUserManager()
 
@@ -116,19 +146,6 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return f'{self.username}: {self.email}, уровень доступа: {self.role}'
-    
-
-
-class PreUser(models.Model):
-    email = models.EmailField('E-MAIL', unique=True, blank=False, null=False)
-    username = models.CharField('username', max_length=150, unique=True)
-
-    class Meta:
-        verbose_name = 'предпользователь'
-        verbose_name_plural = 'предпользователи'
-
-    def __str__(self):
-        return f'{self.username}: {self.email}'
 
 
 class Category(models.Model):
@@ -141,8 +158,8 @@ class Category(models.Model):
 
     class Meta:
         ordering = ('name', )
-        verbose_name = 'Категория'
-        verbose_name_plural = 'Категории'
+        verbose_name = 'категория'
+        verbose_name_plural = 'категории'
 
     def __str__(self):
         return self.name
@@ -189,21 +206,33 @@ class Title(models.Model):
         blank=True, verbose_name='Категория'
     )
 
+    class Meta:
+        verbose_name = 'произведение'
+        verbose_name_plural = 'произведения'
+
     def __str__(self):
         return self.name
 
 
 class Review(models.Model):
     title = models.ForeignKey(
-        Title, on_delete=models.CASCADE, related_name='reviews',verbose_name='Произведения', null=True)
-    text = models.TextField(max_length=200, verbose_name='Текст отзыва')
+        Title,
+        on_delete=models.CASCADE,
+        related_name='reviews',
+        verbose_name='Произведения',
+        null=True
+    )
+    text = models.TextField(
+        max_length=200,
+        verbose_name='Текст отзыва'
+    )
     score = models.IntegerField(
-        validators=[
+        validators=(
             MinValueValidator(1),
-            MaxValueValidator(10)],
+            MaxValueValidator(10)),
         error_messages={'validators': 'Укажите оценку от 1 до 10'},
         verbose_name='Оценка',
-        )
+    )
     author = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
@@ -226,7 +255,7 @@ class Review(models.Model):
             )]
 
     def __str__(self):
-        return self.text
+        return text_processor(self.text, 1)
 
 
 class Comment(models.Model):
@@ -241,19 +270,20 @@ class Comment(models.Model):
         verbose_name='Автор'
     )
     review = models.ForeignKey(
-        Review, on_delete=models.CASCADE, related_name='comments', verbose_name='Отзыв', null=True
+        Review,
+        on_delete=models.CASCADE,
+        related_name='comments',
+        verbose_name='Отзыв',
+        null=True
     )
     text = models.TextField('Текст комментария', max_length=200)
-    created = models.DateTimeField(
-        'Дата добавления', auto_now_add=True, db_index=True
-    )
     pub_date = models.DateTimeField(
         'Дата публикации', auto_now_add=True, null=True
     )
 
     class Meta:
-        verbose_name = 'Комментарий'
-        verbose_name_plural = 'Комментарии'
+        verbose_name = 'комментарий'
+        verbose_name_plural = 'комментарии'
 
     def __str__(self):
-        return self.text
+        return text_processor(self.text, 1)
