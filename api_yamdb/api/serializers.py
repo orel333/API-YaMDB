@@ -59,8 +59,6 @@ class SignUpSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'У нас уже есть пользователь с таким username.'
             )
-        # вместо этой конструкции попробовать использовать
-        # просто or None
         logger.debug(f'Validate username: value: {value}')
         match = re.fullmatch(r'^[mM][eE]$', value)
         if match:

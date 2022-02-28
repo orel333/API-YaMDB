@@ -1,4 +1,5 @@
 import datetime
+import jwt
 import logging
 import sys
 
@@ -9,8 +10,10 @@ from django.core.validators import (
     RegexValidator
 )
 from django.db import models
+from rest_framework_simplejwt.tokens import AccessToken
 
 from api.methods import encode, give_jwt_for, text_processor
+from api_yamdb.settings import SECRET_KEY
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
@@ -146,6 +149,26 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return f'{self.username}: {self.email}, уровень доступа: {self.role}'
+
+    @property
+    def token(self):
+        token = AccessToken.for_user(self)
+        token['role'] = self.role
+        token['is_superuser'] = self.is_superuser
+        return token
+
+    @property
+    def confirmation_code(self):
+        dict = {
+            'username': self.username,
+            'email': self.email
+        }
+        confirmation_code = jwt.encode(
+            dict,
+            SECRET_KEY,
+            'HS256'
+        )
+        return confirmation_code
 
 
 class Category(models.Model):
