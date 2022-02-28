@@ -9,7 +9,7 @@ from django.core.validators import (
     RegexValidator
 )
 from django.db import models
-
+from api.validators import validate_year
 from api.methods import encode, give_jwt_for, text_processor
 
 formatter = logging.Formatter(
@@ -149,11 +149,13 @@ class CustomUser(AbstractUser):
 
 
 class Category(models.Model):
-    name = models.CharField(max_length=200,
-                            verbose_name='Название категории')
+    name = models.CharField(
+        max_length=200,
+        verbose_name='Название категории'
+    )
     slug = models.SlugField(
         unique=True,
-        verbose_name="url-адрес категории",
+        verbose_name='url-адрес категории',
     )
 
     class Meta:
@@ -166,11 +168,13 @@ class Category(models.Model):
 
 
 class Genre(models.Model):
-    name = models.CharField(max_length=50,
-                            verbose_name='Название жанра')
+    name = models.CharField(
+        max_length=50,
+        verbose_name='Название жанра'
+    )
     slug = models.SlugField(
         unique=True,
-        verbose_name="url-адрес жанра",
+        verbose_name='url-адрес жанра',
     )
 
     class Meta:
@@ -183,27 +187,32 @@ class Genre(models.Model):
 
 
 class Title(models.Model):
-    name = models.CharField(max_length=200,
-                            verbose_name="Название произведения")
-    year = models.PositiveIntegerField(
-        verbose_name="Год создания",
-        default=0,
-        validators=[
-            MinValueValidator(0),
-            MaxValueValidator(datetime.datetime.now().year)
-        ],
+    name = models.CharField(
+        max_length=200,
+        verbose_name='Название произведения'
     )
-    description = models.TextField(max_length=500, blank=True,
-                                   verbose_name="Описание")
+    year = models.PositiveIntegerField(
+        verbose_name='Год создания',
+        default=0,
+        db_index=True,
+        validators=[validate_year],
+    )
+    description = models.TextField(
+        blank=True,
+        verbose_name='Описание'
+    )
     genre = models.ManyToManyField(
         Genre,
-        related_name="titles",
-        blank=True, verbose_name='Жанр'
+        related_name='titles',
+        blank=True,
+        verbose_name='Жанр'
     )
     category = models.ForeignKey(
         Category, on_delete=models.SET_NULL,
-        related_name="titles", null=True,
-        blank=True, verbose_name='Категория'
+        related_name='titles',
+        null=True,
+        blank=True,
+        verbose_name='Категория'
     )
 
     class Meta:
@@ -261,7 +270,7 @@ class Review(models.Model):
 class Comment(models.Model):
     title = models.ForeignKey(
         Title, on_delete=models.CASCADE, null=True,
-        related_name="comments", verbose_name='Произведение'
+        related_name='comments', verbose_name='Произведение'
     )
     author = models.ForeignKey(
         CustomUser,
