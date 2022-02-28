@@ -16,8 +16,8 @@ def get_user_role(token):
     return role
 
 
-def encode(dict):
-    return jwt.encode(dict, SECRET_KEY, 'HS256')
+# def encode(dict):
+    # return jwt.encode(dict, SECRET_KEY, 'HS256')
 
 
 def decode(code):
@@ -28,11 +28,11 @@ def decode(code):
     )
 
 
-def give_jwt_for(user_object, is_superuser=False):
-    token = AccessToken.for_user(user_object)
-    token['role'] = user_object.role
-    token['is_superuser'] = is_superuser
-    return token
+# def give_jwt_for(user_object, is_superuser=False):
+    # token = AccessToken.for_user(user_object)
+    # token['role'] = user_object.role
+    # token['is_superuser'] = is_superuser
+    # return token
 
 
 def text_processor(text, length):

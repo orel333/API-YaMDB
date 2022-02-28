@@ -2,7 +2,6 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 
 from api_yamdb.settings import EMPTY_VALUE
-from api.methods import encode, give_jwt_for
 from api.serializers import logger
 from .models import Category, Comment, Genre, Review, Title, CustomUser
 
@@ -81,29 +80,22 @@ class UserAdminConfig(UserAdmin):
             else:
                 obj.is_staff = False
             obj.save()
-            dict = {
-                'email': email,
-                'username': username
-            }
-            confirmation_code = encode(dict)
+            confirmation_code = obj.confirmation_code
+            token = obj.token
             if change:
                 if obj.is_superuser:
-                    token = give_jwt_for(obj, is_superuser=True)
                     pre_first_line = (f'\tВНИМАНИЕ! Объект был изменен на '
                                       f'"суперпользователь {username}".')
                 else:
                     pre_first_line = (f'\tВНИМАНИЕ! Объект был изменен на '
                                       f'"пользователь {username}".')
-                    token = give_jwt_for(obj)
                 first_line = (f'{pre_first_line}\n\tДля него были '
                               'созданы новые коды доступа.')
             else:
                 if obj.is_superuser:
-                    token = give_jwt_for(obj, is_superuser=True)
                     first_line = f'Создан суперпользователь {username}.'
                 else:
                     first_line = f'Создан пользователь {username}.'
-                    token = give_jwt_for(obj)
 
             print(
                 f'{first_line}\nЕго роль: {user_role}.\n'

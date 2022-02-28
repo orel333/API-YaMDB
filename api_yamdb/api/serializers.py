@@ -10,7 +10,7 @@ from jwt.exceptions import DecodeError
 from reviews.models import (ROLE_CHOICES, Category, Comment, CustomUser, Genre,
                             Review, Title)
 
-from .methods import decode, give_jwt_for
+from .methods import decode
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
@@ -133,8 +133,7 @@ class MyTokenObtainSerializer(serializers.Serializer):
             )
 
         if user_object:
-            token = give_jwt_for(user_object)
-            logger.debug(dir(token))
+            token = user_object.token
             logger.debug(f'Токен из serializers: {token}')
             data = {'token': token}
             return data
