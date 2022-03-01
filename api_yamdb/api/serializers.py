@@ -1,3 +1,4 @@
+from jwt.exceptions import DecodeError
 import logging
 import re
 import sys
@@ -6,11 +7,17 @@ from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 
 from rest_framework import exceptions, serializers
-from jwt.exceptions import DecodeError
-from reviews.models import (ROLE_CHOICES, Category, Comment, CustomUser, Genre,
-                            Review, Title)
+from reviews.models import (
+    ROLE_CHOICES,
+    Category,
+    Comment,
+    CustomUser,
+    Genre,
+    Review,
+    Title
+)
 
-from .methods import decode, give_jwt_for
+from .methods import decode
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
@@ -59,8 +66,6 @@ class SignUpSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 'У нас уже есть пользователь с таким username.'
             )
-        # вместо этой конструкции попробовать использовать
-        # просто or None
         logger.debug(f'Validate username: value: {value}')
         match = re.fullmatch(r'^[mM][eE]$', value)
         if match:
@@ -135,8 +140,7 @@ class MyTokenObtainSerializer(serializers.Serializer):
             )
 
         if user_object:
-            token = give_jwt_for(user_object)
-            logger.debug(dir(token))
+            token = user_object.token
             logger.debug(f'Токен из serializers: {token}')
             data = {'token': token}
             return data

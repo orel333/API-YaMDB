@@ -1,4 +1,4 @@
-import datetime
+import jwt
 import logging
 import sys
 
@@ -9,8 +9,11 @@ from django.core.validators import (
     RegexValidator
 )
 from django.db import models
+from rest_framework_simplejwt.tokens import AccessToken
+
+from api.methods import text_processor
 from api.validators import validate_year
-from api.methods import encode, give_jwt_for, text_processor
+from api_yamdb.settings import SECRET_KEY
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
@@ -91,17 +94,12 @@ class CustomUserManager(BaseUserManager):
             user.is_staff = True
             user.set_password(password)
         user.save()
-        dict = {
-            'email': email,
-            'username': username
-        }
-        confirmation_code = encode(dict)
+        confirmation_code = user.confirmation_code
+        token = user.token
         if user.is_superuser is True:
-            token = give_jwt_for(user, is_superuser=True)
             first_line = f'Создан суперпользователь {username}.\n'
         else:
             first_line = f'Создан пользователь {username}.\n'
-            token = give_jwt_for(user)
 
         print(
             f'{first_line}Его роль: {role}.'
@@ -141,11 +139,32 @@ class CustomUser(AbstractUser):
     objects = CustomUserManager()
 
     class Meta:
+        ordering = ('-date_joined',)
         verbose_name = 'пользователь'
         verbose_name_plural = 'пользователи'
 
     def __str__(self):
         return f'{self.username}: {self.email}, уровень доступа: {self.role}'
+
+    @property
+    def token(self):
+        token = AccessToken.for_user(self)
+        token['role'] = self.role
+        token['is_superuser'] = self.is_superuser
+        return token
+
+    @property
+    def confirmation_code(self):
+        dict = {
+            'username': self.username,
+            'email': self.email
+        }
+        confirmation_code = jwt.encode(
+            dict,
+            SECRET_KEY,
+            'HS256'
+        )
+        return confirmation_code
 
 
 class Category(models.Model):
@@ -195,7 +214,7 @@ class Title(models.Model):
         verbose_name='Год создания',
         default=0,
         db_index=True,
-        validators=[validate_year],
+        validators=(validate_year,),
     )
     description = models.TextField(
         blank=True,

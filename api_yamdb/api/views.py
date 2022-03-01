@@ -1,8 +1,6 @@
 import logging
 import sys
 
-import jwt
-from api_yamdb.settings import SECRET_KEY
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
@@ -21,10 +19,8 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from reviews.models import Category, CustomUser, Genre, Review, Title
 
-from api_yamdb.settings import SECRET_KEY
-
 from .filters import TitlesFilter
-from .methods import get_user_role, encode
+from .methods import get_user_role
 from .permissions import (
     IsAdminOrReadOnly,
     IsAdminModeratorUserPermission,
@@ -97,14 +93,8 @@ class UserViewSet(viewsets.ModelViewSet):
                 serializer.save()
                 user = serializer.instance
                 if 'email' in rd or 'username' in rd:
-                    email = user.email
                     username = user.username
-
-                    dict = {
-                        'email': email,
-                        'username': username
-                    }
-                    confirmation_code = encode(dict)
+                    confirmation_code = user.confirmation_code
                     print(
                         f'Объект {username}\n Его новый '
                         f'confirmation_code:{confirmation_code}.'
@@ -131,14 +121,8 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.save(is_staff=is_staff)
         user = serializer.instance
         if 'email' in rd or 'username' in rd:
-            email = user.email
             username = user.username
-
-            dict = {
-                'email': email,
-                'username': username
-            }
-            confirmation_code = encode(dict)
+            confirmation_code = user.confirmation_code
             print(
                 f'Объект {username}\n Его новый '
                 f'confirmation_code:{confirmation_code}.'
@@ -154,15 +138,11 @@ class APISignupView(APIView):
         if serializer.is_valid():
             logger.debug('Валидация APISignupView пройдена')
             serializer.save(is_active=False)
-            email = request.data.get('email')
-            username = request.data.get('username')
-            logger.debug(f'{username}: {email}')
-            dict = {
-                'email': email,
-                'username': username,
-            }
-            key = SECRET_KEY
-            encoded = jwt.encode(dict, key, 'HS256')
+            user = serializer.instance
+            rd = request.data
+            username = rd.get('username')
+            email = rd.get('email')
+            confirmation_code = user.confirmation_code
             mail_theme = 'Подтверждение регистрации пользователя'
             mail_text = (
                 f'Здравствуйте!\n\n\tВы (или кто-то другой) '
@@ -170,7 +150,7 @@ class APISignupView(APIView):
                 'Для подтверждения регистрации отправьте POST запрос '
                 'на адрес: http://127.0.0.1/api/v1/auth/token/. '
                 f'В теле запроса передайте имя пользователя {username} '
-                f'по ключу "username" и код \n\n{encoded}\n\n'
+                f'по ключу "username" и код \n\n{confirmation_code}\n\n'
                 f'по ключу "confirmation_code".'
             )
             mail_from = 'orel333app@gmail.com'
@@ -182,7 +162,7 @@ class APISignupView(APIView):
                 mail_to,
                 fail_silently=False
             )
-            logger.debug(encoded)
+            logger.debug(confirmation_code)
 
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
