@@ -72,7 +72,6 @@ class UserAdminConfig(UserAdmin):
             logger.debug('The object was recognized as CustomUser instance')
             super().save_model(request, obj, form, change)
             user_role = obj.role
-            email = obj.email
             username = obj.username
             if user_role == 'admin':
                 obj.is_staff = True

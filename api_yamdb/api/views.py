@@ -1,7 +1,6 @@
 import logging
 import sys
 
-from api_yamdb.settings import SECRET_KEY
 from django.core.mail import send_mail
 from django.db.models import Avg
 from django.shortcuts import get_object_or_404
@@ -19,8 +18,6 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from reviews.models import Category, CustomUser, Genre, Review, Title
-
-from api_yamdb.settings import SECRET_KEY
 
 from .filters import TitlesFilter
 from .methods import get_user_role
@@ -124,13 +121,7 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.save(is_staff=is_staff)
         user = serializer.instance
         if 'email' in rd or 'username' in rd:
-            email = user.email
             username = user.username
-
-            dict = {
-                'email': email,
-                'username': username
-            }
             confirmation_code = user.confirmation_code
             print(
                 f'Объект {username}\n Его новый '
