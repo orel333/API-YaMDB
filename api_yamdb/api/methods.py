@@ -1,4 +1,5 @@
 import jwt
+from jwt.exceptions import DecodeError
 
 from rest_framework_simplejwt.tokens import AccessToken
 

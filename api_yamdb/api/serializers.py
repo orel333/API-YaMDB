@@ -1,3 +1,4 @@
+from jwt.exceptions import DecodeError
 import logging
 import re
 import sys
@@ -6,9 +7,15 @@ from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
 
 from rest_framework import exceptions, serializers
-from jwt.exceptions import DecodeError
-from reviews.models import (ROLE_CHOICES, Category, Comment, CustomUser, Genre,
-                            Review, Title)
+from reviews.models import (
+    ROLE_CHOICES,
+    Category,
+    Comment,
+    CustomUser,
+    Genre,
+    Review,
+    Title
+)
 
 from .methods import decode
 
