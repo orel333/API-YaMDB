@@ -30,6 +30,7 @@ ROLE_CHOICES = (
 
 class CustomUserManager(BaseUserManager):
     def create_superuser(self, username, email, password, **other_fields):
+        logger.debug('SuperUser is being initialized...')
         other_fields.setdefault('is_staff', True)
         other_fields.setdefault('is_superuser', True)
         other_fields.setdefault('is_active', True)
@@ -41,13 +42,22 @@ class CustomUserManager(BaseUserManager):
             raise ValueError(
                 '"is_superuser" суперпользователя должно быть в режиме "True"'
             )
-        role = 'admin'
+        logger.debug(
+            f'Here are some other fields in parameters: {other_fields}'
+        )
+        if 'role' in other_fields:
+            role = other_fields.get('role')
+            del other_fields['role']
+        else:
+            role = 'admin'
 
         return self.create_user(username, email, role, password, **other_fields)
 
     def create_user(self, username, email, role='user', password=None, **other_fields):
         logger.debug(f'Got role: {role}')
         logger.debug(f'Got password: {password}')
+        logger.debug(f'Is_staff: {other_fields.get("is_staff")}')
+        logger.debug(f'Is_superuser: {other_fields.get("is_superuser")}')
         logger.debug('Create user func was initiated')
         if not email:
             raise ValueError('Необходимо указать email')
@@ -82,6 +92,7 @@ class CustomUserManager(BaseUserManager):
               f'Его токен: {token}\n'
               f'Его confirmation_code для обновления токена:\n'
               f'{confirmation_code}')
+        logger.debug(f'user_if_staff:{user.is_staff}')
         return user
 
 

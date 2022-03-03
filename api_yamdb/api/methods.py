@@ -11,7 +11,7 @@ def get_user_role(token):
         key=SECRET_KEY,
         algorithms=['HS256']
     )
-    role = data['role']
+    role = data.get('role')
     return role
 
 def encode(dict):
