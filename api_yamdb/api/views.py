@@ -237,7 +237,7 @@ class TitleViewSet(viewsets.ModelViewSet):
 class ReviewViewSet(viewsets.ModelViewSet):
     """Пользователи оставляют к произведениям текстовые отзывы."""
     serializer_class = ReviewSerializer
-    permission_classes = [IsAdminModeratorUserPermission,]
+    permission_classes = (IsAdminModeratorUserPermission,)
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
             return Title.objects.none()
@@ -250,7 +250,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
 class CommentViewSet(viewsets.ModelViewSet):
     """Пользователи оставляют коментарии к отзывам."""
     serializer_class = CommentSerializer
-    permission_classes = [IsAdminModeratorUserPermission,]
+    permission_classes = (IsAdminModeratorUserPermission,)
     def get_queryset(self):
         review = get_object_or_404(
             Review, id=self.kwargs.get('review_id'),
