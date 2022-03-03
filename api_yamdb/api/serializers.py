@@ -1,20 +1,20 @@
-import jwt
-from jwt.exceptions import DecodeError
 import logging
 import re
 import sys
 import time
 
+import jwt
+from api_yamdb.settings import SECRET_KEY
 from django.core.exceptions import ValidationError
 from django.shortcuts import get_object_or_404
-
+from jwt.exceptions import DecodeError
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.tokens import AccessToken
+from reviews.models import (ROLE_CHOICES, Category, Comment, CustomUser, Genre,
+                            PreUser, Review, Title)
 
-from api_yamdb.settings import SECRET_KEY
 from .methods import decode, encode, give_jwt_for
-from reviews.models import CustomUser, PreUser, ROLE_CHOICES, Category, Genre, Title, Comment, Review
 
 formatter = logging.Formatter(
     '%(asctime)s %(levelname)s %(message)s - строка %(lineno)s'
@@ -53,6 +53,7 @@ class SignUpSerializer(serializers.ModelSerializer):
         )
 
     def validate_username(self, value):
+        logger.debug('Валидация username запущена')
         user = None
         try:
             user = CustomUser.objects.get(username=value)
@@ -88,8 +89,7 @@ class SignUpSerializer(serializers.ModelSerializer):
         logger.debug(f'Валидация email: {user}')
         return value
 
-class MyTokenObtainSerializer(
-    serializers.Serializer,):
+class MyTokenObtainSerializer(serializers.Serializer):
     token = serializers.CharField(read_only=True)
 
     def validate(self, data):
@@ -139,7 +139,7 @@ class MyTokenObtainSerializer(
             newborn = CustomUser.objects.create_user(**custom_user_data)
             user_object.delete()
             user_object = newborn
-        
+
         token = give_jwt_for(user_object)
         logger.debug(dir(token))
         logger.debug(f'Токен из serializers: {token}')
@@ -157,40 +157,16 @@ class MyTokenObtainSerializer(
             #проверяем правильность кода,
 
 
-class SignUpSerializer(serializers.ModelSerializer):
-
-    class Meta:
-        model = CustomUser
-        fields = (
-            'username',
-            'email'
-        )
-
-
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = Category
         fields = ('name', 'slug', )
-        lookup_field = 'slug'
 
 
 class GenreSerializer(serializers.ModelSerializer):
     class Meta:
         model = Genre
         fields = ('name', 'slug', )
-        lookup_field = 'slug'
-
-
-class CategoryField(serializers.SlugRelatedField):
-    def to_representation(self, value):
-        serializer = CategorySerializer(value)
-        return serializer.data
-
-
-class GenreField(serializers.SlugRelatedField):
-    def to_representation(self, value):
-        serializer = GenreSerializer(value)
-        return serializer.data
 
 
 class TitleSerializer(serializers.ModelSerializer):
@@ -203,13 +179,6 @@ class TitleSerializer(serializers.ModelSerializer):
         fields = ('id', 'name', 'year', 'rating',
                   'description', 'genre', 'category')
 
-class TitleCreateSerializer(serializers.ModelSerializer):
-    category = serializers.SlugRelatedField(
-        queryset=Category.objects.all(), slug_field='slug'
-    )
-    genre = serializers.SlugRelatedField(
-        queryset=Genre.objects.all(), slug_field='slug', many=True
-    )
 
 class TitleCreateSerializer(serializers.ModelSerializer):
     category = serializers.SlugRelatedField(
