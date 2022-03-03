@@ -95,7 +95,8 @@ class UserViewSet(viewsets.ModelViewSet):
                 if 'email' in rd or 'username' in rd:
                     username = user.username
                     confirmation_code = user.confirmation_code
-                    print(
+                    # при запуске в производство поставить отправку по почте
+                    logger.debug(
                         f'Объект {username}\n Его новый '
                         f'confirmation_code:{confirmation_code}.'
                     )
@@ -123,7 +124,8 @@ class UserViewSet(viewsets.ModelViewSet):
         if 'email' in rd or 'username' in rd:
             username = user.username
             confirmation_code = user.confirmation_code
-            print(
+            # при запуске в производство поставить отправку по почте
+            logger.debug(
                 f'Объект {username}\n Его новый '
                 f'confirmation_code:{confirmation_code}.'
             )

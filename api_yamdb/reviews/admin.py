@@ -95,8 +95,8 @@ class UserAdminConfig(UserAdmin):
                     first_line = f'Создан суперпользователь {username}.'
                 else:
                     first_line = f'Создан пользователь {username}.'
-
-            print(
+            # при запуске в производство поставить отправку по почте
+            logger.debug(
                 f'{first_line}\nЕго роль: {user_role}.\n'
                 f'Его токен: {token}\n'
                 f'Его confirmation_code для обновления токена:\n'
