@@ -30,9 +30,6 @@ python3 manage.py runserver
 ```
 #### Распределение задач в команде
 
-- [orel333](https://github.com/orel333/API-YaMDB/commits/master/README.md?author=orel333):
-пишет всю часть, касающуюся управления пользователями (Auth и Users): систему регистрации и аутентификации, права доступа, работу с токеном, систему подтверждения через e-mail.
-- [Ascurse](https://github.com/orel333/API-YaMDB/commits/master/README.md?author=Ascurse):
-пишет категории (Categories), жанры (Genres) и произведения (Titles): модели, представления и эндпойнты для них.»
-- [emarpoint](https://github.com/orel333/API-YaMDB/commits/master/README.md?author=emarpoint):
-занимается отзывами (Review) и комментариями (Comments): описывает модели, представления, настраивает эндпойнты, определяет права доступа для запросов. Рейтинги произведений тоже достаются третьему разработчику. 
+- [orel333](https://github.com/orel333/API-YaMDB/commits/master/README.md?author=orel333): часть, касающаяся управления пользователями (Auth и Users): система регистрации и аутентификации, права доступа, работа с токеном, система подтверждения через e-mail.
+- [Ascurse](https://github.com/orel333/API-YaMDB/commits/master/README.md?author=Ascurse): категории (Categories), жанры (Genres) и произведения (Titles): модели, представления и эндпойнты для них.
+- [emarpoint](https://github.com/orel333/API-YaMDB/commits/master/README.md?author=emarpoint): отзывы (Review) и комментарии (Comments): модели, представления, эндпойнты, права доступа для запросов, рейтинги произведений.
