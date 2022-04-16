@@ -2,7 +2,7 @@
 ### Технологии
 - Python 3.7.0
 - Django 2.2.16
-- Djago REST framework 3.12.4
+- Django REST framework 3.12.4
 - Simple JWT 5.0.0
 
 ### Описание
